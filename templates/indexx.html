@@ -1,23 +1,190 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Remove Watermark from PDF</title>
+    <title>PDF水印去除 | Quick Remove</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --neon-purple: #a855f7;
+            --violet: #7c3aed;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .aurora-bg {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+            background: radial-gradient(ellipse at 30% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(124, 58, 237, 0.12) 0%, transparent 45%);
+        }
+        .container {
+            position: relative; z-index: 1;
+            max-width: 600px; margin: 0 auto;
+            padding: 80px 24px; min-height: 100vh;
+            display: flex; flex-direction: column;
+            justify-content: center;
+        }
+
+        .header { text-align: center; margin-bottom: 50px; }
+        .header-icon {
+            width: 90px; height: 90px;
+            background: linear-gradient(135deg, var(--neon-purple), var(--violet));
+            border-radius: 28px; display: flex; align-items: center;
+            justify-content: center; font-size: 42px;
+            margin: 0 auto 24px;
+            box-shadow: 0 25px 50px -12px rgba(168, 85, 247, 0.4);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 25px 50px -12px rgba(168, 85, 247, 0.4); }
+            50% { box-shadow: 0 25px 60px -8px rgba(168, 85, 247, 0.6); }
+        }
+        .header h1 {
+            font-size: 2.8rem; font-weight: 700;
+            background: linear-gradient(135deg, #fff, rgba(255,255,255,0.7));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .header p { color: rgba(255,255,255,0.5); font-size: 1.15rem; }
+
+        .glass-card {
+            background: var(--glass-bg); backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 24px;
+            padding: 40px;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(255,255,255,0.2); border-radius: 16px;
+            padding: 60px 30px; text-align: center; cursor: pointer;
+            transition: all 0.3s ease; position: relative;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--neon-purple); background: rgba(168, 85, 247, 0.08);
+        }
+        .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .upload-icon { font-size: 56px; margin-bottom: 20px; }
+        .upload-text { color: rgba(255,255,255,0.7); font-size: 1.1rem; margin-bottom: 8px; }
+        .upload-hint { color: rgba(255,255,255,0.4); font-size: 0.85rem; }
+
+        .btn-primary {
+            width: 100%; padding: 20px 32px; margin-top: 28px;
+            background: linear-gradient(135deg, var(--neon-purple), var(--violet));
+            border: none; border-radius: 14px; color: #fff;
+            font-size: 1.15rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 25px 50px -12px rgba(168, 85, 247, 0.5);
+        }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .status {
+            margin-top: 24px; padding: 16px 20px;
+            background: rgba(168, 85, 247, 0.1); border-radius: 12px;
+            text-align: center; display: none;
+        }
+        .status.show { display: block; }
+        .status.processing { color: var(--neon-purple); }
+        .status.error { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .status.success { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+
+        .spinner {
+            display: inline-block; width: 18px; height: 18px;
+            border: 2px solid rgba(168, 85, 247, 0.3);
+            border-top-color: var(--neon-purple);
+            border-radius: 50%; margin-right: 10px;
+            animation: spin 0.8s linear infinite; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 640px) {
+            .container { padding: 40px 16px; }
+            .glass-card { padding: 28px 20px; }
+            .header h1 { font-size: 2rem; }
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload PDF to Remove Watermark</h1>
-    <form id="upload-form" enctype="multipart/form-data">
-        <input type="file" id="pdf-file-input" name="file" accept=".pdf">
-        <button type="submit">Remove Watermark & Download</button>
-    </form>
+    <div class="aurora-bg"></div>
+    <div class="container">
+        <header class="header">
+            <div class="header-icon">⚡</div>
+            <h1>快速去除水印</h1>
+            <p>上传即处理，一键下载</p>
+        </header>
 
-    <script>        $(document).ready(function() {
+        <div class="glass-card">
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="upload-zone" id="dropZone">
+                    <input type="file" id="pdf-file-input" name="file" accept=".pdf">
+                    <div class="upload-icon">📑</div>
+                    <div class="upload-text">点击或拖拽PDF文件到此处</div>
+                    <div class="upload-hint">上传后自动处理并下载</div>
+                </div>
+                <button type="submit" class="btn-primary" id="submitBtn">
+                    🚀 去除水印并下载
+                </button>
+            </form>
+            <div class="status" id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            const dropZone = $('#dropZone');
+            const fileInput = $('#pdf-file-input');
+            const submitBtn = $('#submitBtn');
+            const status = $('#status');
+
+            // 文件选择显示
+            fileInput.on('change', function() {
+                if (this.files.length > 0) {
+                    dropZone.find('.upload-text').text('📎 ' + this.files[0].name);
+                } else {
+                    dropZone.find('.upload-text').text('点击或拖拽PDF文件到此处');
+                }
+            });
+
+            // 拖拽支持
+            dropZone.on('dragover', function(e) {
+                e.preventDefault();
+                $(this).addClass('dragover');
+            }).on('dragleave drop', function(e) {
+                e.preventDefault();
+                $(this).removeClass('dragover');
+            }).on('drop', function(e) {
+                fileInput[0].files = e.originalEvent.dataTransfer.files;
+                fileInput.trigger('change');
+            });
+
+            // 表单提交
             $('#upload-form').on('submit', function(event) {
                 event.preventDefault();
+                
+                if (!fileInput[0].files.length) {
+                    status.removeClass().addClass('status show error').text('❌ 请先选择PDF文件');
+                    return;
+                }
 
                 var formData = new FormData(this);
+                
+                submitBtn.prop('disabled', true).html('<span class="spinner"></span>处理中...');
+                status.removeClass().addClass('status show processing')
+                      .html('<span class="spinner"></span>正在处理，请稍候...');
 
                 $.ajax({
                     url: '/remove_watermark',
@@ -25,18 +192,37 @@
                     data: formData,
                     contentType: false,
                     processData: false,
-                    success: function(response, status, xhr) {
-                        var filename = xhr.getResponseHeader('Content-Disposition').split('filename=')[1];
-                        var blob = new Blob([response], {type: "application/pdf"});
+                    xhrFields: { responseType: 'blob' },
+                    success: function(response, textStatus, xhr) {
+                        var disposition = xhr.getResponseHeader('Content-Disposition');
+                        var filename = disposition ? disposition.split('filename=')[1] : 'processed.pdf';
+                        filename = filename.replace(/['"]/g, '');
 
-                        // Create a link and click on it to download the file
+                        var blob = new Blob([response], { type: 'application/pdf' });
                         var link = document.createElement('a');
                         link.href = window.URL.createObjectURL(blob);
                         link.download = filename;
                         link.click();
+                        window.URL.revokeObjectURL(link.href);
+
+                        status.removeClass().addClass('status show success')
+                              .text('✅ 处理完成，已开始下载！');
                     },
-                    error: function(xhr, status, error) {
-                        console.error("Error:", xhr.responseText);
+                    error: function(xhr) {
+                        var errorMsg = '处理失败';
+                        try {
+                            var reader = new FileReader();
+                            reader.onload = function() {
+                                status.removeClass().addClass('status show error')
+                                      .text('❌ ' + (reader.result || errorMsg));
+                            };
+                            reader.readAsText(xhr.responseText);
+                        } catch(e) {
+                            status.removeClass().addClass('status show error').text('❌ ' + errorMsg);
+                        }
+                    },
+                    complete: function() {
+                        submitBtn.prop('disabled', false).html('🚀 去除水印并下载');
                     }
                 });
             });

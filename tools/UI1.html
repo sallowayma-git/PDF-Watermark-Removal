@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>增强版图片处理 | Watermark Removal Pro</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --electric-blue: #3b82f6;
+            --deep-blue: #1d4ed8;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .aurora-bg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background: radial-gradient(ellipse at 60% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+                        radial-gradient(ellipse at 30% 80%, rgba(29, 78, 216, 0.1) 0%, transparent 45%);
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            min-height: 100vh;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            margin-bottom: 40px;
+        }
+        .back-btn:hover {
+            background: rgba(255,255,255,0.12);
+            transform: translateX(-4px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .header-icon {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, var(--electric-blue), var(--deep-blue));
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 24px;
+            box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.4);
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, rgba(255,255,255,0.7));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .header p { color: rgba(255,255,255,0.5); font-size: 1.1rem; }
+        .header .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            background: linear-gradient(135deg, var(--electric-blue), var(--deep-blue));
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 12px;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 24px;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 16px;
+            padding: 50px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .upload-zone:hover {
+            border-color: var(--electric-blue);
+            background: rgba(59, 130, 246, 0.05);
+        }
+        .upload-zone input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .upload-icon { font-size: 48px; margin-bottom: 16px; }
+        .upload-text { color: rgba(255,255,255,0.6); font-size: 1rem; }
+        .upload-hint { color: rgba(255,255,255,0.4); font-size: 0.85rem; margin-top: 8px; }
+
+        .btn-group {
+            display: flex;
+            gap: 16px;
+            margin-top: 24px;
+        }
+        .btn-primary {
+            flex: 1;
+            padding: 18px 32px;
+            background: linear-gradient(135deg, var(--electric-blue), var(--deep-blue));
+            border: none;
+            border-radius: 14px;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.5);
+        }
+        .btn-secondary {
+            flex: 1;
+            padding: 18px 32px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.12);
+        }
+        .btn-secondary.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-top: 24px;
+        }
+        @media (max-width: 640px) {
+            .image-grid { grid-template-columns: 1fr; }
+            .btn-group { flex-direction: column; }
+        }
+
+        .image-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+        .image-box h3 {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+        .image-box img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            object-fit: contain;
+        }
+        .image-placeholder {
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="aurora-bg"></div>
+    
+    <div class="container">
+        <a href="../index.html" class="back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            返回首页
+        </a>
+
+        <header class="header">
+            <div class="header-icon">✨</div>
+            <h1>增强版图片处理</h1>
+            <p>去除水印 + 一键下载</p>
+            <span class="badge">PRO</span>
+        </header>
+
+        <div class="glass-card">
+            <div class="upload-zone" id="dropZone">
+                <input type="file" id="uploadInput" accept="image/*">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">点击或拖拽图片到此处</div>
+                <div class="upload-hint">支持 JPG、PNG、WebP 格式</div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-primary" onclick="removeWatermark()">✨ 去除水印</button>
+                <a id="downloadLink" class="btn-secondary disabled" download="result_image.png">
+                    📥 下载结果
+                </a>
+            </div>
+
+            <div class="image-grid">
+                <div class="image-box">
+                    <h3>原始图片</h3>
+                    <div id="inputContainer">
+                        <div class="image-placeholder">等待上传...</div>
+                    </div>
+                    <img id="inputImage" style="display:none;">
+                </div>
+                <div class="image-box">
+                    <h3>处理结果</h3>
+                    <div id="resultContainer">
+                        <div class="image-placeholder">等待处理...</div>
+                    </div>
+                    <img id="resultImage" style="display:none;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            var inputElement = document.getElementById("uploadInput");
+            inputElement.addEventListener("change", handleFiles, false);
+
+            function handleFiles() {
+                var file = this.files[0];
+                if (file) {
+                    var img = document.getElementById("inputImage");
+                    img.src = URL.createObjectURL(file);
+                    img.style.display = "block";
+                    document.querySelector("#inputContainer .image-placeholder").style.display = "none";
+                    // 重置下载按钮
+                    document.getElementById("downloadLink").classList.add("disabled");
+                    document.getElementById("resultImage").style.display = "none";
+                    document.querySelector("#resultContainer .image-placeholder").style.display = "flex";
+                }
+            }
+
+            // 拖拽支持
+            var dropZone = document.getElementById("dropZone");
+            dropZone.addEventListener("dragover", function(e) {
+                e.preventDefault();
+                this.style.borderColor = "#3b82f6";
+                this.style.background = "rgba(59, 130, 246, 0.1)";
+            });
+            dropZone.addEventListener("dragleave", function(e) {
+                this.style.borderColor = "rgba(255,255,255,0.2)";
+                this.style.background = "transparent";
+            });
+            dropZone.addEventListener("drop", function(e) {
+                e.preventDefault();
+                this.style.borderColor = "rgba(255,255,255,0.2)";
+                this.style.background = "transparent";
+                inputElement.files = e.dataTransfer.files;
+                handleFiles.call(inputElement);
+            });
+        });
+
+        function removeWatermark() {
+            var img = document.getElementById("inputImage");
+            if (!img.src) { alert("请先上传图片"); return; }
+
+            var canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var data = imageData.data;
+
+            for (var i = 0; i < data.length; i += 4) {
+                var r = data[i], g = data[i + 1], b = data[i + 2];
+                if (r >= 160 && g >= 160 && b >= 160) {
+                    data[i] = data[i + 1] = data[i + 2] = 255;
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            
+            var dataURL = canvas.toDataURL();
+            var resultImage = document.getElementById("resultImage");
+            resultImage.src = dataURL;
+            resultImage.style.display = "block";
+            document.querySelector("#resultContainer .image-placeholder").style.display = "none";
+
+            var downloadLink = document.getElementById("downloadLink");
+            downloadLink.href = dataURL;
+            downloadLink.classList.remove("disabled");
+        }
+    </script>
+</body>
+</html>

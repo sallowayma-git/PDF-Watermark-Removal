@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水印去除工具集 | Watermark Removal Suite</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --glass-shadow: rgba(0, 0, 0, 0.3);
+            --neon-purple: #a855f7;
+            --electric-blue: #3b82f6;
+            --coral: #f97316;
+            --cyan: #06b6d4;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+            color: #fff;
+        }
+
+        /* 极光背景 */
+        .aurora-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .aurora-wave {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 60%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
+                        radial-gradient(ellipse at 50% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 40%);
+            animation: auroraMove 20s ease-in-out infinite;
+        }
+
+        @keyframes auroraMove {
+            0%, 100% { transform: translate(-10%, -10%) rotate(0deg); }
+            50% { transform: translate(10%, 10%) rotate(5deg); }
+        }
+
+        /* 主容器 */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 40px;
+            min-height: 100vh;
+        }
+
+        /* 头部区域 */
+        .header {
+            text-align: center;
+            margin-bottom: 80px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 300;
+            letter-spacing: 0.05em;
+        }
+
+        /* 3D装饰球体 */
+        .floating-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(0px);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .orb-1 {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--neon-purple), var(--electric-blue));
+            top: -20px;
+            right: 10%;
+            opacity: 0.6;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--cyan), var(--electric-blue));
+            bottom: 20%;
+            left: 5%;
+            opacity: 0.5;
+            animation-delay: -2s;
+        }
+
+        .orb-3 {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--coral), var(--neon-purple));
+            top: 40%;
+            right: 3%;
+            opacity: 0.4;
+            animation-delay: -4s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(10deg); }
+        }
+
+        /* Bento网格布局 */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: auto auto;
+            gap: 24px;
+        }
+
+        /* 玻璃卡片 */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 30px 60px -20px var(--glass-shadow),
+                        0 0 40px -10px var(--card-glow, rgba(168, 85, 247, 0.2));
+        }
+
+        /* 卡片尺寸变体 */
+        .card-large {
+            grid-column: span 2;
+            grid-row: span 1;
+        }
+
+        .card-small {
+            grid-column: span 1;
+            grid-row: span 1;
+        }
+
+        /* 卡片图标 */
+        .card-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 28px;
+            position: relative;
+            font-size: 32px;
+        }
+
+        .card-icon::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 22px;
+            background: inherit;
+            filter: blur(15px);
+            opacity: 0.5;
+            z-index: -1;
+        }
+
+        .icon-purple { background: linear-gradient(135deg, var(--neon-purple), #7c3aed); --card-glow: rgba(168, 85, 247, 0.3); }
+        .icon-blue { background: linear-gradient(135deg, var(--electric-blue), #1d4ed8); --card-glow: rgba(59, 130, 246, 0.3); }
+        .icon-cyan { background: linear-gradient(135deg, var(--cyan), #0891b2); --card-glow: rgba(6, 182, 212, 0.3); }
+        .icon-coral { background: linear-gradient(135deg, var(--coral), #ea580c); --card-glow: rgba(249, 115, 22, 0.3); }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .card-desc {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+
+        .card-tag {
+            display: inline-block;
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 20px;
+            align-self: flex-start;
+        }
+
+        /* 箭头指示器 */
+        .card-arrow {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover .card-arrow {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .card-arrow svg {
+            width: 20px;
+            height: 20px;
+            stroke: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 底部装饰 */
+        .footer {
+            text-align: center;
+            margin-top: 80px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.9rem;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .bento-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .card-large { grid-column: span 2; }
+        }
+
+        @media (max-width: 640px) {
+            .container { padding: 40px 20px; }
+            .bento-grid { grid-template-columns: 1fr; gap: 16px; }
+            .card-large, .card-small { grid-column: span 1; }
+            .glass-card { padding: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 极光背景 -->
+    <div class="aurora-bg">
+        <div class="aurora-wave"></div>
+    </div>
+
+    <!-- 装饰球体 -->
+    <div class="floating-orb orb-1"></div>
+    <div class="floating-orb orb-2"></div>
+    <div class="floating-orb orb-3"></div>
+
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1>水印去除工具集</h1>
+            <p>Watermark Removal Suite · 选择适合您的工具</p>
+        </header>
+
+        <!-- Bento网格 -->
+        <div class="bento-grid">
+            <!-- 卡片1: 基础图片水印去除 -->
+            <a href="tools/UI.html" class="glass-card card-large" style="--card-glow: rgba(168, 85, 247, 0.3);">
+                <div class="card-icon icon-purple">🖼️</div>
+                <h2 class="card-title">基础图片水印去除</h2>
+                <p class="card-desc">快速去除图片中的浅色水印，采用像素级颜色替换算法，适合处理简单的文字水印。上传即用，无需配置。</p>
+                <span class="card-tag">纯前端处理</span>
+                <div class="card-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </div>
+            </a>
+
+            <!-- 卡片2: 增强版图片处理 -->
+            <a href="tools/UI1.html" class="glass-card card-large" style="--card-glow: rgba(59, 130, 246, 0.3);">
+                <div class="card-icon icon-blue">✨</div>
+                <h2 class="card-title">增强版图片处理</h2>
+                <p class="card-desc">在基础功能上增加了一键下载功能，处理完成后可直接保存结果图片到本地，更加便捷高效。</p>
+                <span class="card-tag">支持下载</span>
+                <div class="card-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </div>
+            </a>
+
+            <!-- 卡片3: PDF水印去除 -->
+            <a href="tools/try_pdf.html" class="glass-card card-small" style="--card-glow: rgba(6, 182, 212, 0.3);">
+                <div class="card-icon icon-cyan">📄</div>
+                <h2 class="card-title">PDF水印去除</h2>
+                <p class="card-desc">专为PDF文档设计，通过后端服务处理PDF文件中的水印内容。</p>
+                <span class="card-tag">需要后端</span>
+                <div class="card-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </div>
+            </a>
+
+            <!-- 卡片4: 服务端图片处理 -->
+            <a href="tools/try_pdf_fetch.html" class="glass-card card-small" style="--card-glow: rgba(249, 115, 22, 0.3);">
+                <div class="card-icon icon-coral">🚀</div>
+                <h2 class="card-title">服务端图片处理</h2>
+                <p class="card-desc">通过API上传图片至服务器进行专业级水印去除处理。</p>
+                <span class="card-tag">API模式</span>
+                <div class="card-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </div>
+            </a>
+        </div>
+
+        <!-- 底部 -->
+        <footer class="footer">
+            <p>© 2025 Watermark Removal Suite · Crafted with ❤️</p>
+        </footer>
+    </div>
+
+    <!-- Three.js 3D装饰 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 3D场景初始化
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.domElement.style.position = 'fixed';
+        renderer.domElement.style.top = '0';
+        renderer.domElement.style.left = '0';
+        renderer.domElement.style.zIndex = '0';
+        renderer.domElement.style.pointerEvents = 'none';
+        document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+        // 创建玻璃质感几何体
+        const geometry1 = new THREE.TorusKnotGeometry(1.5, 0.4, 100, 16);
+        const material1 = new THREE.MeshPhysicalMaterial({
+            color: 0x8b5cf6,
+            metalness: 0.1,
+            roughness: 0.1,
+            transmission: 0.9,
+            thickness: 0.5,
+            transparent: true,
+            opacity: 0.6
+        });
+        const torusKnot = new THREE.Mesh(geometry1, material1);
+        torusKnot.position.set(6, 2, -5);
+        scene.add(torusKnot);
+
+        // 球体
+        const geometry2 = new THREE.IcosahedronGeometry(1.2, 1);
+        const material2 = new THREE.MeshPhysicalMaterial({
+            color: 0x06b6d4,
+            metalness: 0.3,
+            roughness: 0.1,
+            transmission: 0.8,
+            thickness: 0.5,
+            transparent: true,
+            opacity: 0.5
+        });
+        const icosahedron = new THREE.Mesh(geometry2, material2);
+        icosahedron.position.set(-6, -1, -4);
+        scene.add(icosahedron);
+
+        // 光源
+        const light1 = new THREE.PointLight(0xa855f7, 2, 100);
+        light1.position.set(10, 10, 10);
+        scene.add(light1);
+
+        const light2 = new THREE.PointLight(0x3b82f6, 2, 100);
+        light2.position.set(-10, -10, 10);
+        scene.add(light2);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
+
+        camera.position.z = 8;
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            torusKnot.rotation.x += 0.003;
+            torusKnot.rotation.y += 0.005;
+            
+            icosahedron.rotation.x += 0.004;
+            icosahedron.rotation.y += 0.003;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // 响应式
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 鼠标交互
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth - 0.5) * 2;
+            const y = (e.clientY / window.innerHeight - 0.5) * 2;
+            
+            torusKnot.position.x = 6 + x * 0.5;
+            torusKnot.position.y = 2 - y * 0.5;
+            
+            icosahedron.position.x = -6 + x * 0.3;
+            icosahedron.position.y = -1 - y * 0.3;
+        });
+    </script>
+</body>
+</html>

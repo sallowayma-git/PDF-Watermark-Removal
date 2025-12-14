@@ -5,195 +5,282 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF水印去除工具</title>
     <style>
-        #upload-section {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100px;
-            flex-direction: column;
-            gap: 10px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        #message {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --cyan: #06b6d4;
+            --teal: #0891b2;
+            --success: #22c55e;
+            --error: #ef4444;
         }
-        
-        #download-link {
-            display: none;
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            color: #fff;
+            overflow-x: hidden;
         }
-        
+
+        .aurora-bg {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+            background: radial-gradient(ellipse at 40% 30%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 70%, rgba(8, 145, 178, 0.12) 0%, transparent 45%);
+        }
+
+        .container {
+            position: relative; z-index: 1;
+            max-width: 700px; margin: 0 auto;
+            padding: 60px 24px; min-height: 100vh;
+        }
+
+        .header { text-align: center; margin-bottom: 50px; }
+        .header-icon {
+            width: 90px; height: 90px;
+            background: linear-gradient(135deg, var(--cyan), var(--teal));
+            border-radius: 28px; display: flex; align-items: center;
+            justify-content: center; font-size: 42px;
+            margin: 0 auto 24px;
+            box-shadow: 0 25px 50px -12px rgba(6, 182, 212, 0.4);
+        }
+        .header h1 {
+            font-size: 2.8rem; font-weight: 700;
+            background: linear-gradient(135deg, #fff, rgba(255,255,255,0.7));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .header p { color: rgba(255,255,255,0.5); font-size: 1.15rem; }
+
+        .glass-card {
+            background: var(--glass-bg); backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 24px;
+            padding: 40px; margin-bottom: 24px;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(255,255,255,0.2); border-radius: 16px;
+            padding: 50px 30px; text-align: center; cursor: pointer;
+            transition: all 0.3s ease; position: relative;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--cyan); background: rgba(6, 182, 212, 0.08);
+        }
+        .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .upload-icon { font-size: 52px; margin-bottom: 16px; }
+        .upload-text { color: rgba(255,255,255,0.7); font-size: 1.05rem; }
+        .upload-hint { color: rgba(255,255,255,0.4); font-size: 0.85rem; margin-top: 8px; }
+        .file-name {
+            margin-top: 16px; padding: 14px 20px;
+            background: rgba(6, 182, 212, 0.12); border-radius: 12px;
+            color: var(--cyan); font-size: 0.95rem; display: none;
+        }
+
+        .btn-group { display: flex; gap: 16px; margin-top: 28px; }
+        .btn {
+            flex: 1; padding: 18px 24px; border: none; border-radius: 14px;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease; text-align: center;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cyan), var(--teal)); color: #fff;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px -10px rgba(6, 182, 212, 0.5);
+        }
+        .btn-secondary {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); color: #fff;
+        }
+        .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
         .progress-container {
-            display: none;
-            margin: 20px 0;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: #f9f9f9;
+            display: none; margin-top: 28px; padding: 24px;
+            background: rgba(0,0,0,0.25); border-radius: 16px;
         }
-        
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background-color: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #45a049);
-            width: 0%;
-            transition: width 0.3s ease;
-            border-radius: 10px;
-        }
-        
         .progress-text {
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 5px;
+            text-align: center; font-size: 2rem; font-weight: 700;
+            color: var(--cyan); margin-bottom: 12px;
         }
-        
-        .status-text {
-            text-align: center;
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
+        .progress-bar {
+            width: 100%; height: 10px;
+            background: rgba(255,255,255,0.1); border-radius: 10px;
+            overflow: hidden; margin-bottom: 12px;
         }
-        
-        .error-text {
-            color: #d32f2f;
-            background-color: #ffebee;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
+        .progress-fill {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--cyan), var(--teal));
+            border-radius: 10px; transition: width 0.3s ease;
         }
-        
-        .success-text {
-            color: #388e3c;
-            background-color: #e8f5e8;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-        
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        
+        .progress-fill.error { background: linear-gradient(90deg, var(--error), #dc2626); }
+        .progress-fill.success { background: linear-gradient(90deg, var(--success), #16a34a); }
+        .status-text { text-align: center; color: rgba(255,255,255,0.6); font-size: 0.95rem; }
         .processing-info {
-            font-size: 12px;
-            color: #888;
-            margin-top: 5px;
+            text-align: center; color: rgba(255,255,255,0.4);
+            font-size: 0.85rem; margin-top: 8px;
+        }
+
+        .message {
+            margin-top: 20px; padding: 16px 20px; border-radius: 12px;
+            text-align: center; display: none;
+        }
+        .message.success { background: rgba(34, 197, 94, 0.15); color: var(--success); display: block; }
+        .message.error { background: rgba(239, 68, 68, 0.15); color: var(--error); display: block; }
+
+        .download-link {
+            display: none; width: 100%; padding: 18px 24px; margin-top: 16px;
+            background: linear-gradient(135deg, var(--success), #16a34a);
+            border-radius: 14px; color: #fff; font-size: 1rem; font-weight: 600;
+            text-decoration: none; text-align: center; transition: all 0.3s ease;
+        }
+        .download-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px -10px rgba(34, 197, 94, 0.5);
+        }
+
+        @media (max-width: 640px) {
+            .container { padding: 40px 16px; }
+            .glass-card { padding: 28px 20px; }
+            .btn-group { flex-direction: column; }
+            .header h1 { font-size: 2rem; }
         }
     </style>
 </head>
 <body>
-    <div id="upload-section">
-        <input type="file" id="file-input" accept=".pdf">
-        <button id="upload-btn">上传PDF文件</button>
-        <button id="remove-watermark-btn" disabled>去除水印并生成无水印PDF</button>
-    </div>
-    
-    <div id="progress-container" class="progress-container">
-        <div id="progress-text" class="progress-text">准备开始处理...</div>
-        <div class="progress-bar">
-            <div id="progress-fill" class="progress-fill"></div>
+    <div class="aurora-bg"></div>
+    <div class="container">
+        <header class="header">
+            <div class="header-icon">📄</div>
+            <h1>PDF水印去除工具</h1>
+            <p>上传PDF文件，智能去除水印</p>
+        </header>
+
+        <div class="glass-card">
+            <div class="upload-zone" id="dropZone">
+                <input type="file" id="file-input" accept=".pdf">
+                <div class="upload-icon">📑</div>
+                <div class="upload-text">点击或拖拽PDF文件到此处</div>
+                <div class="upload-hint">仅支持 PDF 格式文件</div>
+            </div>
+            <div class="file-name" id="fileName"></div>
+
+            <div class="btn-group">
+                <button class="btn btn-secondary" id="upload-btn">📤 上传文件</button>
+                <button class="btn btn-primary" id="remove-watermark-btn" disabled>✨ 去除水印</button>
+            </div>
+
+            <div id="progress-container" class="progress-container">
+                <div id="progress-text" class="progress-text">0%</div>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <div id="status-text" class="status-text">准备开始处理...</div>
+                <div id="processing-info" class="processing-info"></div>
+            </div>
+
+            <div id="message" class="message"></div>
+            <a id="download-link" class="download-link" href="/download" download>📥 下载处理后的PDF</a>
         </div>
-        <div id="status-text" class="status-text">等待开始...</div>
-        <div id="processing-info" class="processing-info"></div>
     </div>
-    
-    <p id="message"></p>
-    <a id="download-link" href="#" download>下载处理后的PDF</a>
 
     <script>
         let progressInterval = null;
-        
-        document.getElementById('file-input').addEventListener('change', () => {
-            const fileInput = document.getElementById('file-input');
-            if (fileInput.files.length === 0) {
-                document.getElementById('upload-btn').innerText = '选择PDF文件';
-                document.getElementById('remove-watermark-btn').disabled = true;
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('dropZone');
+        const fileName = document.getElementById('fileName');
+        const uploadBtn = document.getElementById('upload-btn');
+        const removeBtn = document.getElementById('remove-watermark-btn');
+        const message = document.getElementById('message');
+        const progressContainer = document.getElementById('progress-container');
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+        const statusText = document.getElementById('status-text');
+        const processingInfo = document.getElementById('processing-info');
+        const downloadLink = document.getElementById('download-link');
+
+        // 文件选择
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileName.textContent = '📎 ' + this.files[0].name;
+                fileName.style.display = 'block';
+                removeBtn.disabled = false;
             } else {
-                document.getElementById('upload-btn').innerText = '开始上传';
-                document.getElementById('remove-watermark-btn').disabled = false;
+                fileName.style.display = 'none';
+                removeBtn.disabled = true;
             }
         });
 
-        document.getElementById('upload-btn').addEventListener('click', async () => {
-            if (!document.getElementById('file-input').files.length) return;
+        // 拖拽支持
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', function() {
+            this.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+        });
 
+        // 上传文件
+        uploadBtn.addEventListener('click', async function() {
+            if (!fileInput.files.length) return;
             const formData = new FormData();
-            formData.append('file', document.getElementById('file-input').files[0]);
+            formData.append('file', fileInput.files[0]);
 
             try {
-                document.getElementById('upload-btn').disabled = true;
-                document.getElementById('upload-btn').innerText = '上传中...';
+                this.disabled = true;
+                this.textContent = '⏳ 上传中...';
+                message.className = 'message';
                 
-                const response = await fetch('/upload', { 
-                    method: 'POST', 
-                    body: formData 
-                });
-                
+                const response = await fetch('/upload', { method: 'POST', body: formData });
                 if (response.ok) {
-                    document.getElementById('message').innerHTML = '<div class="success-text">文件上传成功！</div>';
-                    document.getElementById('remove-watermark-btn').innerText = '去除水印并生成无水印PDF';
-                } else {
-                    throw new Error('上传失败');
-                }
+                    message.textContent = '✅ 文件上传成功！';
+                    message.className = 'message success';
+                } else { throw new Error('上传失败'); }
             } catch (error) {
-                console.error('Error uploading file:', error);
-                document.getElementById('message').innerHTML = '<div class="error-text">文件上传失败: ' + error.message + '</div>';
+                message.textContent = '❌ 上传失败: ' + error.message;
+                message.className = 'message error';
             } finally {
-                document.getElementById('upload-btn').disabled = false;
-                document.getElementById('upload-btn').innerText = '选择PDF文件';
+                this.disabled = false;
+                this.textContent = '📤 上传文件';
             }
         });
 
-        document.getElementById('remove-watermark-btn').addEventListener('click', async () => {
+        // 去除水印
+        removeBtn.addEventListener('click', async function() {
             try {
-                // 禁用按钮
-                document.getElementById('remove-watermark-btn').disabled = true;
-                document.getElementById('remove-watermark-btn').innerText = '处理中...';
-                
-                // 显示进度容器
-                document.getElementById('progress-container').style.display = 'block';
-                document.getElementById('message').innerHTML = '';
-                document.getElementById('download-link').style.display = 'none';
-                
-                // 启动处理任务
+                this.disabled = true;
+                this.textContent = '⏳ 处理中...';
+                progressContainer.style.display = 'block';
+                message.className = 'message';
+                downloadLink.style.display = 'none';
+                progressFill.className = 'progress-fill';
+
                 const response = await fetch('/remove_watermark');
                 const result = await response.json();
                 
                 if (response.ok && result.status === 'started') {
-                    // 开始进度轮询
                     startProgressPolling();
-                } else {
-                    throw new Error(result.message || '启动处理任务失败');
-                }
+                } else { throw new Error(result.message || '启动处理失败'); }
             } catch (error) {
-                console.error('Error starting watermark removal:', error);
-                document.getElementById('message').innerHTML = '<div class="error-text">启动处理失败: ' + error.message + '</div>';
-                
-                // 重新启用按钮
-                document.getElementById('remove-watermark-btn').disabled = false;
-                document.getElementById('remove-watermark-btn').innerText = '去除水印并生成无水印PDF';
-                document.getElementById('progress-container').style.display = 'none';
+                message.textContent = '❌ 处理失败: ' + error.message;
+                message.className = 'message error';
+                this.disabled = false;
+                this.textContent = '✨ 去除水印';
+                progressContainer.style.display = 'none';
             }
         });
 
         function startProgressPolling() {
-            // 清除之前的轮询
-            if (progressInterval) {
-                clearInterval(progressInterval);
-            }
-            
-            // 每500ms轮询一次进度
+            if (progressInterval) clearInterval(progressInterval);
             progressInterval = setInterval(checkProgress, 500);
         }
 
@@ -201,63 +288,45 @@
             try {
                 const response = await fetch('/progress');
                 const progress = await response.json();
-                
                 updateProgressDisplay(progress);
-                
-                // 如果处理完成或出错，停止轮询
+
                 if (progress.status === 'completed' || progress.status === 'error') {
                     clearInterval(progressInterval);
                     progressInterval = null;
-                    
+
                     if (progress.status === 'completed') {
-                        document.getElementById('message').innerHTML = '<div class="success-text">水印去除完成！</div>';
-                        document.getElementById('download-link').href = '/download';
-                        document.getElementById('download-link').style.display = 'block';
-                    } else if (progress.status === 'error') {
-                        document.getElementById('message').innerHTML = '<div class="error-text">处理出错: ' + progress.error_message + '</div>';
+                        message.textContent = '✅ 水印去除完成！';
+                        message.className = 'message success';
+                        downloadLink.style.display = 'block';
+                    } else {
+                        message.textContent = '❌ 处理出错: ' + progress.error_message;
+                        message.className = 'message error';
                     }
-                    
-                    // 重新启用按钮
-                    document.getElementById('remove-watermark-btn').disabled = false;
-                    document.getElementById('remove-watermark-btn').innerText = '去除水印并生成无水印PDF';
+                    removeBtn.disabled = false;
+                    removeBtn.textContent = '✨ 去除水印';
                 }
-            } catch (error) {
-                console.error('Error checking progress:', error);
-            }
+            } catch (error) { console.error('Progress check error:', error); }
         }
 
         function updateProgressDisplay(progress) {
-            // 更新进度条
-            const progressFill = document.getElementById('progress-fill');
-            const progressText = document.getElementById('progress-text');
-            const statusText = document.getElementById('status-text');
-            const processingInfo = document.getElementById('processing-info');
-            
             progressFill.style.width = progress.progress + '%';
             progressText.textContent = Math.round(progress.progress) + '%';
-            
-            // 根据状态更新显示
+
             switch (progress.status) {
                 case 'processing':
-                    statusText.textContent = '正在处理中...';
-                    if (progress.stage) {
-                        statusText.textContent += ' ' + progress.stage;
-                    }
+                    statusText.textContent = '正在处理中...' + (progress.stage ? ' ' + progress.stage : '');
                     if (progress.current_page && progress.total_pages) {
-                        processingInfo.textContent = `正在处理第 ${progress.current_page} 页，共 ${progress.total_pages} 页`;
+                        processingInfo.textContent = `第 ${progress.current_page} / ${progress.total_pages} 页`;
                     }
                     break;
-                    
                 case 'completed':
-                    statusText.textContent = '处理完成！';
-                    progressFill.style.background = 'linear-gradient(90deg, #4CAF50, #45a049)';
+                    statusText.textContent = '✅ 处理完成！';
+                    progressFill.classList.add('success');
                     break;
-                    
                 case 'error':
-                    statusText.textContent = '处理出错';
-                    progressFill.style.background = 'linear-gradient(90deg, #f44336, #d32f2f)';
+                    statusText.textContent = '❌ 处理出错';
+                    progressFill.classList.add('error');
                     break;
-                    
                 default:
                     statusText.textContent = '等待开始...';
             }

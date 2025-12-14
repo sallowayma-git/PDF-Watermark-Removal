@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF水印去除 | PDF Watermark Removal</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --cyan: #06b6d4;
+            --teal: #0891b2;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .aurora-bg {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+            background: radial-gradient(ellipse at 40% 30%, rgba(6, 182, 212, 0.12) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 70%, rgba(8, 145, 178, 0.1) 0%, transparent 45%);
+        }
+        .container {
+            position: relative; z-index: 1;
+            max-width: 800px; margin: 0 auto;
+            padding: 40px 24px; min-height: 100vh;
+        }
+
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 12px 20px; background: var(--glass-bg);
+            backdrop-filter: blur(20px); border: 1px solid var(--glass-border);
+            border-radius: 12px; color: rgba(255,255,255,0.8);
+            text-decoration: none; font-size: 0.9rem;
+            transition: all 0.3s ease; margin-bottom: 40px;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.12); transform: translateX(-4px); }
+
+        .header { text-align: center; margin-bottom: 50px; }
+        .header-icon {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, var(--cyan), var(--teal));
+            border-radius: 24px; display: flex; align-items: center;
+            justify-content: center; font-size: 36px;
+            margin: 0 auto 24px;
+            box-shadow: 0 20px 40px -10px rgba(6, 182, 212, 0.4);
+        }
+        .header h1 {
+            font-size: 2.5rem; font-weight: 700;
+            background: linear-gradient(135deg, #fff, rgba(255,255,255,0.7));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .header p { color: rgba(255,255,255,0.5); font-size: 1.1rem; }
+        .notice {
+            display: inline-block; padding: 8px 16px; margin-top: 16px;
+            background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 10px; font-size: 0.85rem; color: var(--cyan);
+        }
+
+        .glass-card {
+            background: var(--glass-bg); backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 24px;
+            padding: 40px; margin-bottom: 24px;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(255,255,255,0.2); border-radius: 16px;
+            padding: 50px; text-align: center; cursor: pointer;
+            transition: all 0.3s ease; position: relative;
+        }
+        .upload-zone:hover { border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); }
+        .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .upload-icon { font-size: 48px; margin-bottom: 16px; }
+        .upload-text { color: rgba(255,255,255,0.6); font-size: 1rem; }
+        .upload-hint { color: rgba(255,255,255,0.4); font-size: 0.85rem; margin-top: 8px; }
+        .file-name {
+            margin-top: 16px; padding: 12px 20px;
+            background: rgba(6, 182, 212, 0.1); border-radius: 10px;
+            color: var(--cyan); font-size: 0.9rem; display: none;
+        }
+
+        .btn-primary {
+            width: 100%; padding: 18px 32px;
+            background: linear-gradient(135deg, var(--cyan), var(--teal));
+            border: none; border-radius: 14px; color: #fff;
+            font-size: 1.1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease; margin-top: 24px;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 20px 40px -10px rgba(6, 182, 212, 0.5); }
+
+        .message {
+            margin-top: 20px; padding: 16px 20px;
+            border-radius: 12px; text-align: center; display: none;
+        }
+        .message.success { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .message.error { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+        .download-btn {
+            display: none; width: 100%; padding: 18px 32px;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 14px; color: #fff; font-size: 1.1rem;
+            font-weight: 600; text-decoration: none; text-align: center;
+            margin-top: 16px; transition: all 0.3s ease;
+        }
+        .download-btn:hover { background: rgba(255,255,255,0.12); }
+    </style>
+</head>
+<body>
+    <div class="aurora-bg"></div>
+    <div class="container">
+        <a href="../index.html" class="back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            返回首页
+        </a>
+
+        <header class="header">
+            <div class="header-icon">📄</div>
+            <h1>PDF水印去除</h1>
+            <p>专业处理PDF文档水印</p>
+            <div class="notice">⚠️ 需要后端服务支持</div>
+        </header>
+
+        <div class="glass-card">
+            <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+                <div class="upload-zone" id="dropZone">
+                    <input type="file" name="file" accept=".pdf" id="fileInput">
+                    <div class="upload-icon">📑</div>
+                    <div class="upload-text">点击或拖拽PDF文件到此处</div>
+                    <div class="upload-hint">仅支持 PDF 格式</div>
+                </div>
+                <div class="file-name" id="fileName"></div>
+            </form>
+
+            <button class="btn-primary" onclick="removeWatermark()">🔧 去除水印</button>
+            <div class="message" id="message"></div>
+            <a id="downloadLink" class="download-btn" href="/download">📥 下载处理后文件</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function() {
+            var fileName = this.files[0]?.name;
+            if (fileName) {
+                document.getElementById('fileName').textContent = '📎 ' + fileName;
+                document.getElementById('fileName').style.display = 'block';
+            }
+        });
+
+        function removeWatermark() {
+            var msgEl = document.getElementById("message");
+            msgEl.style.display = "block";
+            msgEl.className = "message";
+            msgEl.textContent = "处理中...";
+
+            fetch('/remove_watermark', { method: 'GET' })
+                .then(response => response.json())
+                .then(data => {
+                    msgEl.textContent = data.message;
+                    if (data.success) {
+                        msgEl.className = "message success";
+                        document.getElementById("downloadLink").style.display = "block";
+                    } else {
+                        msgEl.className = "message error";
+                    }
+                })
+                .catch(error => {
+                    msgEl.className = "message error";
+                    msgEl.textContent = "出现错误：" + error.message;
+                });
+        }
+    </script>
+</body>
+</html>
