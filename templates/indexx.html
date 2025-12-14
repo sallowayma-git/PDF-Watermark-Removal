@@ -111,6 +111,23 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* 服务器状态指示器 */
+        .server-status {
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 20px; margin-bottom: 24px;
+            background: var(--glass-bg); backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 14px;
+        }
+        .status-dot {
+            width: 12px; height: 12px; border-radius: 50%;
+            background: #22c55e;
+        }
+        .server-status .status-label { flex: 1; font-size: 0.9rem; color: rgba(255,255,255,0.7); }
+        .status-badge {
+            padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+            background: rgba(34, 197, 94, 0.2); color: #22c55e;
+        }
+
         @media (max-width: 640px) {
             .container { padding: 40px 16px; }
             .glass-card { padding: 28px 20px; }
@@ -126,6 +143,13 @@
             <h1>快速去除水印</h1>
             <p>上传即处理，一键下载</p>
         </header>
+
+        <!-- 服务器状态 -->
+        <div class="server-status">
+            <div class="status-dot"></div>
+            <span class="status-label">服务器已连接</span>
+            <span class="status-badge">在线</span>
+        </div>
 
         <div class="glass-card">
             <form id="upload-form" enctype="multipart/form-data">

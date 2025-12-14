@@ -142,6 +142,49 @@
             box-shadow: 0 20px 40px -10px rgba(34, 197, 94, 0.5);
         }
 
+        /* 服务器状态指示器 */
+        .server-status {
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 20px; margin-bottom: 24px;
+            background: var(--glass-bg); backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 14px;
+        }
+        .status-dot {
+            width: 12px; height: 12px; border-radius: 50%;
+            background: #fbbf24; animation: pulse-dot 1.5s infinite;
+        }
+        .status-dot.online { background: var(--success); animation: none; }
+        .status-dot.offline { background: var(--error); animation: pulse-dot 1s infinite; }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.9); }
+        }
+        .server-status .status-label { flex: 1; font-size: 0.9rem; color: rgba(255,255,255,0.7); }
+        .status-badge {
+            padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+        }
+        .status-badge.checking { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .status-badge.online { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .status-badge.offline { background: rgba(239, 68, 68, 0.2); color: var(--error); }
+
+        .server-offline-overlay {
+            display: none; position: absolute; inset: 0;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            border-radius: 24px; z-index: 10;
+            flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 40px;
+        }
+        .server-offline-overlay.show { display: flex; }
+        .offline-icon { font-size: 48px; margin-bottom: 16px; }
+        .offline-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 8px; }
+        .offline-desc { color: rgba(255,255,255,0.6); font-size: 0.95rem; line-height: 1.6; }
+        .offline-cmd {
+            margin-top: 20px; padding: 12px 20px;
+            background: rgba(255,255,255,0.1); border-radius: 8px;
+            font-family: monospace; font-size: 0.9rem; color: var(--cyan);
+        }
+        .glass-card { position: relative; }
+
         @media (max-width: 640px) {
             .container { padding: 40px 16px; }
             .glass-card { padding: 28px 20px; }
@@ -159,7 +202,21 @@
             <p>上传PDF文件，智能去除水印</p>
         </header>
 
+        <!-- 服务器状态 -->
+        <div class="server-status" id="serverStatus">
+            <div class="status-dot" id="statusDot"></div>
+            <span class="status-label" id="statusLabel">正在检测服务器状态...</span>
+            <span class="status-badge checking" id="statusBadge">检测中</span>
+        </div>
+
         <div class="glass-card">
+            <!-- 离线遮罩 -->
+            <div class="server-offline-overlay" id="offlineOverlay">
+                <div class="offline-icon">🔌</div>
+                <div class="offline-title">服务器运行正常</div>
+                <div class="offline-desc">您正在通过服务器访问此页面</div>
+            </div>
+
             <div class="upload-zone" id="dropZone">
                 <input type="file" id="file-input" accept=".pdf">
                 <div class="upload-icon">📑</div>
@@ -188,6 +245,38 @@
     </div>
 
     <script>
+        // 服务器状态检测（此页面由服务器提供，所以默认在线）
+        const statusDot = document.getElementById('statusDot');
+        const statusLabel = document.getElementById('statusLabel');
+        const statusBadge = document.getElementById('statusBadge');
+
+        function setServerOnline() {
+            statusDot.className = 'status-dot online';
+            statusLabel.textContent = '服务器已连接';
+            statusBadge.className = 'status-badge online';
+            statusBadge.textContent = '在线';
+        }
+
+        // 页面由服务器渲染，说明服务器在线
+        setServerOnline();
+
+        // 定时检测保持状态
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('/health', { method: 'GET' })
+                    .catch(() => fetch('/', { method: 'HEAD' }));
+                if (response.ok || response.status === 404) {
+                    setServerOnline();
+                }
+            } catch (error) {
+                statusDot.className = 'status-dot offline';
+                statusLabel.textContent = '连接已断开';
+                statusBadge.className = 'status-badge offline';
+                statusBadge.textContent = '离线';
+            }
+        }
+        setInterval(checkServerStatus, 5000);
+
         let progressInterval = null;
         const fileInput = document.getElementById('file-input');
         const dropZone = document.getElementById('dropZone');

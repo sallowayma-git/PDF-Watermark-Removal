@@ -29,31 +29,16 @@
             color: #fff;
         }
 
-        /* 极光背景 */
-        .aurora-bg {
+        /* 背景渐变（Three.js点阵的底色） */
+        .bg-gradient {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 0;
-            overflow: hidden;
-        }
-
-        .aurora-wave {
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(ellipse at 30% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
-                        radial-gradient(ellipse at 70% 60%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
-                        radial-gradient(ellipse at 50% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 40%);
-            animation: auroraMove 20s ease-in-out infinite;
-        }
-
-        @keyframes auroraMove {
-            0%, 100% { transform: translate(-10%, -10%) rotate(0deg); }
-            50% { transform: translate(10%, 10%) rotate(5deg); }
+            z-index: -1;
+            background: radial-gradient(ellipse at 50% 50%, #1a1a2e 0%, #0a0a0f 100%);
         }
 
         /* 主容器 */
@@ -91,48 +76,7 @@
             letter-spacing: 0.05em;
         }
 
-        /* 3D装饰球体 */
-        .floating-orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(0px);
-            animation: float 6s ease-in-out infinite;
-        }
 
-        .orb-1 {
-            width: 120px;
-            height: 120px;
-            background: linear-gradient(135deg, var(--neon-purple), var(--electric-blue));
-            top: -20px;
-            right: 10%;
-            opacity: 0.6;
-            animation-delay: 0s;
-        }
-
-        .orb-2 {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, var(--cyan), var(--electric-blue));
-            bottom: 20%;
-            left: 5%;
-            opacity: 0.5;
-            animation-delay: -2s;
-        }
-
-        .orb-3 {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--coral), var(--neon-purple));
-            top: 40%;
-            right: 3%;
-            opacity: 0.4;
-            animation-delay: -4s;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-30px) rotate(10deg); }
-        }
 
         /* Bento网格布局 */
         .bento-grid {
@@ -275,6 +219,224 @@
             font-size: 0.9rem;
         }
 
+        /* 服务器控制面板 */
+        .server-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 24px 28px;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .server-status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fbbf24;
+            animation: pulse-dot 1.5s infinite;
+        }
+        .status-dot.online { background: #22c55e; animation: none; box-shadow: 0 0 12px rgba(34, 197, 94, 0.5); }
+        .status-dot.offline { background: #ef4444; animation: pulse-dot 1s infinite; }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        .status-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .status-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        .status-desc {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .server-actions {
+            display: flex;
+            gap: 12px;
+            margin-left: auto;
+        }
+
+        .btn-server {
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-start {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #fff;
+        }
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(34, 197, 94, 0.5);
+        }
+        .btn-guide {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+        }
+        .btn-guide:hover {
+            background: rgba(255,255,255,0.12);
+        }
+
+        /* 启动指南弹窗 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 32px;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.2); }
+
+        .step-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .step-item {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--cyan), var(--electric-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .step-content h4 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        .step-content p {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+            line-height: 1.5;
+        }
+        .code-block {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            color: var(--cyan);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .copy-btn {
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover { background: rgba(255,255,255,0.2); }
+        .copy-btn.copied { background: #22c55e; }
+
+        .quick-start-tip {
+            margin-top: 24px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 12px;
+        }
+        .quick-start-tip h4 {
+            color: #22c55e;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .quick-start-tip p {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        @media (max-width: 640px) {
+            .server-panel { flex-direction: column; align-items: stretch; }
+            .server-actions { margin-left: 0; justify-content: stretch; }
+            .btn-server { flex: 1; justify-content: center; }
+        }
+
         /* 响应式 */
         @media (max-width: 1024px) {
             .bento-grid {
@@ -292,15 +454,8 @@
     </style>
 </head>
 <body>
-    <!-- 极光背景 -->
-    <div class="aurora-bg">
-        <div class="aurora-wave"></div>
-    </div>
-
-    <!-- 装饰球体 -->
-    <div class="floating-orb orb-1"></div>
-    <div class="floating-orb orb-2"></div>
-    <div class="floating-orb orb-3"></div>
+    <!-- 背景渐变 -->
+    <div class="bg-gradient"></div>
 
     <div class="container">
         <!-- 头部 -->
@@ -308,6 +463,25 @@
             <h1>水印去除工具集</h1>
             <p>Watermark Removal Suite · 选择适合您的工具</p>
         </header>
+
+        <!-- 服务器控制面板 -->
+        <div class="server-panel">
+            <div class="server-status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <div class="status-info">
+                    <span class="status-title" id="statusTitle">检测服务器状态...</span>
+                    <span class="status-desc" id="statusDesc">正在连接后端服务</span>
+                </div>
+            </div>
+            <div class="server-actions">
+                <button class="btn-server btn-guide" onclick="openGuideModal()">
+                    📖 启动指南
+                </button>
+                <button class="btn-server btn-start" onclick="openStartScript()">
+                    🚀 一键启动
+                </button>
+            </div>
+        </div>
 
         <!-- Bento网格 -->
         <div class="bento-grid">
@@ -370,10 +544,84 @@
         </footer>
     </div>
 
-    <!-- Three.js 3D装饰 -->
+    <!-- 启动指南弹窗 -->
+    <div class="modal-overlay" id="guideModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🚀 服务器启动指南</h3>
+                <button class="modal-close" onclick="closeGuideModal()">✕</button>
+            </div>
+
+            <div class="quick-start-tip">
+                <h4>⚡ 快速启动</h4>
+                <p>双击项目根目录下的 <strong>start_server.bat</strong> 文件即可自动检测环境、安装依赖并启动服务器。</p>
+            </div>
+
+            <div class="step-list">
+                <div class="step-item">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>确保已安装 Python 3.8+</h4>
+                        <p>如未安装，请前往 python.org 下载安装</p>
+                        <div class="code-block">
+                            <span>python --version</span>
+                            <button class="copy-btn" onclick="copyCode(this, 'python --version')">复制</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>安装依赖包</h4>
+                        <p>项目需要 Flask、PyMuPDF、Pillow 等依赖</p>
+                        <div class="code-block">
+                            <span>pip install flask pymupdf pillow</span>
+                            <button class="copy-btn" onclick="copyCode(this, 'pip install flask pymupdf pillow')">复制</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>启动服务器</h4>
+                        <p>在项目根目录运行以下命令</p>
+                        <div class="code-block">
+                            <span>python app.py</span>
+                            <button class="copy-btn" onclick="copyCode(this, 'python app.py')">复制</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>访问服务</h4>
+                        <p>服务器启动后，访问以下地址使用完整功能</p>
+                        <div class="code-block">
+                            <span>http://localhost:5000</span>
+                            <button class="copy-btn" onclick="copyCode(this, 'http://localhost:5000')">复制</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                <h4 style="color: #ef4444; font-size: 0.9rem; margin-bottom: 8px;">❓ 常见问题</h4>
+                <p style="font-size: 0.85rem; color: rgba(255,255,255,0.6); line-height: 1.6;">
+                    • <strong>pip 不是内部命令</strong>：请确保 Python 已添加到系统 PATH<br>
+                    • <strong>端口被占用</strong>：修改 app.py 中的端口号或关闭占用程序<br>
+                    • <strong>模块未找到</strong>：运行 pip install 安装缺失的依赖
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js 3D点阵背景 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // 3D场景初始化
+        // 场景初始化
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -387,59 +635,230 @@
         renderer.domElement.style.pointerEvents = 'none';
         document.body.insertBefore(renderer.domElement, document.body.firstChild);
 
-        // 创建玻璃质感几何体
-        const geometry1 = new THREE.TorusKnotGeometry(1.5, 0.4, 100, 16);
-        const material1 = new THREE.MeshPhysicalMaterial({
-            color: 0x8b5cf6,
-            metalness: 0.1,
-            roughness: 0.1,
-            transmission: 0.9,
-            thickness: 0.5,
+        // 鼠标位置
+        const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
+        const mouseWorld = new THREE.Vector3();
+
+        // 点阵参数 - 扩大网格铺满屏幕
+        const GRID_SIZE = 50;
+        const SPACING = 1.5;
+        const POINT_COUNT = GRID_SIZE * GRID_SIZE;
+        const INFLUENCE_RADIUS = 10;
+        const MAX_DISPLACEMENT = 2.5;
+
+        // 创建点阵几何体
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(POINT_COUNT * 3);
+        const originalPositions = new Float32Array(POINT_COUNT * 3);
+        const colors = new Float32Array(POINT_COUNT * 3);
+        const sizes = new Float32Array(POINT_COUNT);
+
+        // 颜色定义
+        const colorPalette = [
+            new THREE.Color(0xa855f7), // 紫色
+            new THREE.Color(0x3b82f6), // 蓝色
+            new THREE.Color(0x06b6d4), // 青色
+            new THREE.Color(0xf97316), // 橙色
+        ];
+
+        // 初始化点阵
+        let index = 0;
+        const halfGrid = GRID_SIZE / 2;
+        for (let i = 0; i < GRID_SIZE; i++) {
+            for (let j = 0; j < GRID_SIZE; j++) {
+                const x = (i - halfGrid) * SPACING;
+                const y = (j - halfGrid) * SPACING;
+                const z = Math.sin(i * 0.3) * Math.cos(j * 0.3) * 2;
+
+                positions[index * 3] = x;
+                positions[index * 3 + 1] = y;
+                positions[index * 3 + 2] = z;
+
+                originalPositions[index * 3] = x;
+                originalPositions[index * 3 + 1] = y;
+                originalPositions[index * 3 + 2] = z;
+
+                // 渐变颜色
+                const colorIndex = Math.floor((i + j) / (GRID_SIZE * 2) * colorPalette.length);
+                const color = colorPalette[Math.min(colorIndex, colorPalette.length - 1)];
+                const nextColor = colorPalette[Math.min(colorIndex + 1, colorPalette.length - 1)];
+                const t = ((i + j) % (GRID_SIZE * 2 / colorPalette.length)) / (GRID_SIZE * 2 / colorPalette.length);
+                
+                colors[index * 3] = THREE.MathUtils.lerp(color.r, nextColor.r, t);
+                colors[index * 3 + 1] = THREE.MathUtils.lerp(color.g, nextColor.g, t);
+                colors[index * 3 + 2] = THREE.MathUtils.lerp(color.b, nextColor.b, t);
+
+                sizes[index] = 3 + Math.random() * 2;
+                index++;
+            }
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+        // 自定义着色器材质
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 },
+                mousePos: { value: new THREE.Vector3() },
+            },
+            vertexShader: `
+                attribute float size;
+                attribute vec3 color;
+                varying vec3 vColor;
+                varying float vAlpha;
+                uniform float time;
+                uniform vec3 mousePos;
+                
+                void main() {
+                    vColor = color;
+                    vec3 pos = position;
+                    
+                    // 计算与鼠标的距离
+                    float dist = distance(pos.xy, mousePos.xy);
+                    float influence = 1.0 - smoothstep(0.0, 8.0, dist);
+                    
+                    // 鼠标影响下的位移
+                    pos.z += influence * 3.0;
+                    
+                    // 波浪动画
+                    pos.z += sin(pos.x * 0.5 + time) * cos(pos.y * 0.5 + time) * 0.5;
+                    
+                    // 透明度基于距离
+                    vAlpha = 0.3 + influence * 0.7;
+                    
+                    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                    gl_PointSize = size * (1.0 + influence * 2.0) * (300.0 / -mvPosition.z);
+                    gl_Position = projectionMatrix * mvPosition;
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vColor;
+                varying float vAlpha;
+                
+                void main() {
+                    // 圆形点
+                    float dist = length(gl_PointCoord - vec2(0.5));
+                    if (dist > 0.5) discard;
+                    
+                    // 发光效果
+                    float glow = 1.0 - smoothstep(0.0, 0.5, dist);
+                    vec3 finalColor = vColor * glow;
+                    
+                    gl_FragColor = vec4(finalColor, vAlpha * glow);
+                }
+            `,
             transparent: true,
-            opacity: 0.6
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
         });
-        const torusKnot = new THREE.Mesh(geometry1, material1);
-        torusKnot.position.set(6, 2, -5);
-        scene.add(torusKnot);
 
-        // 球体
-        const geometry2 = new THREE.IcosahedronGeometry(1.2, 1);
-        const material2 = new THREE.MeshPhysicalMaterial({
-            color: 0x06b6d4,
-            metalness: 0.3,
-            roughness: 0.1,
-            transmission: 0.8,
-            thickness: 0.5,
+        const points = new THREE.Points(geometry, material);
+        scene.add(points);
+
+        // 添加连线效果
+        const lineGeometry = new THREE.BufferGeometry();
+        const linePositions = [];
+        const lineColors = [];
+
+        for (let i = 0; i < GRID_SIZE; i++) {
+            for (let j = 0; j < GRID_SIZE; j++) {
+                const idx = i * GRID_SIZE + j;
+                
+                // 水平连线
+                if (j < GRID_SIZE - 1) {
+                    const nextIdx = i * GRID_SIZE + (j + 1);
+                    linePositions.push(
+                        originalPositions[idx * 3], originalPositions[idx * 3 + 1], originalPositions[idx * 3 + 2],
+                        originalPositions[nextIdx * 3], originalPositions[nextIdx * 3 + 1], originalPositions[nextIdx * 3 + 2]
+                    );
+                    lineColors.push(
+                        colors[idx * 3], colors[idx * 3 + 1], colors[idx * 3 + 2],
+                        colors[nextIdx * 3], colors[nextIdx * 3 + 1], colors[nextIdx * 3 + 2]
+                    );
+                }
+                
+                // 垂直连线
+                if (i < GRID_SIZE - 1) {
+                    const nextIdx = (i + 1) * GRID_SIZE + j;
+                    linePositions.push(
+                        originalPositions[idx * 3], originalPositions[idx * 3 + 1], originalPositions[idx * 3 + 2],
+                        originalPositions[nextIdx * 3], originalPositions[nextIdx * 3 + 1], originalPositions[nextIdx * 3 + 2]
+                    );
+                    lineColors.push(
+                        colors[idx * 3], colors[idx * 3 + 1], colors[idx * 3 + 2],
+                        colors[nextIdx * 3], colors[nextIdx * 3 + 1], colors[nextIdx * 3 + 2]
+                    );
+                }
+            }
+        }
+
+        lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        lineGeometry.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
+
+        const lineMaterial = new THREE.LineBasicMaterial({
+            vertexColors: true,
             transparent: true,
-            opacity: 0.5
+            opacity: 0.15,
+            blending: THREE.AdditiveBlending,
         });
-        const icosahedron = new THREE.Mesh(geometry2, material2);
-        icosahedron.position.set(-6, -1, -4);
-        scene.add(icosahedron);
 
-        // 光源
-        const light1 = new THREE.PointLight(0xa855f7, 2, 100);
-        light1.position.set(10, 10, 10);
-        scene.add(light1);
+        const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+        scene.add(lines);
 
-        const light2 = new THREE.PointLight(0x3b82f6, 2, 100);
-        light2.position.set(-10, -10, 10);
-        scene.add(light2);
+        // 相机位置 
+        camera.position.z = 0;
+        camera.position.y = -27;
+        camera.lookAt(0, 0, 0);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-        scene.add(ambientLight);
-
-        camera.position.z = 8;
+        // 时间变量
+        let time = 0;
 
         // 动画循环
         function animate() {
             requestAnimationFrame(animate);
-            
-            torusKnot.rotation.x += 0.003;
-            torusKnot.rotation.y += 0.005;
-            
-            icosahedron.rotation.x += 0.004;
-            icosahedron.rotation.y += 0.003;
+            time += 0.01;
+
+            // 平滑鼠标移动
+            mouse.x += (mouse.targetX - mouse.x) * 0.05;
+            mouse.y += (mouse.targetY - mouse.y) * 0.05;
+
+            // 更新着色器uniform
+            material.uniforms.time.value = time;
+            material.uniforms.mousePos.value.set(mouse.x * 20, -mouse.y * 20, 0);
+
+            // 点阵整体旋转 - 更平缓的角度
+            points.rotation.x = Math.sin(time * 0.15) * 0.08 + 0.5;
+            points.rotation.y = time * 0.03;
+            lines.rotation.copy(points.rotation);
+
+            // 更新连线位置（跟随点阵）
+            const posAttr = geometry.attributes.position;
+            const lineAttr = lineGeometry.attributes.position;
+            let lineIdx = 0;
+
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const idx = i * GRID_SIZE + j;
+                    const x = originalPositions[idx * 3];
+                    const y = originalPositions[idx * 3 + 1];
+                    
+                    // 波浪效果
+                    const wave = Math.sin(x * 0.5 + time) * Math.cos(y * 0.5 + time) * 0.5;
+                    
+                    // 鼠标影响
+                    const dx = x - mouse.x * 20;
+                    const dy = y - (-mouse.y * 20);
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const influence = Math.max(0, 1 - dist / INFLUENCE_RADIUS);
+                    const displacement = influence * MAX_DISPLACEMENT;
+
+                    const newZ = originalPositions[idx * 3 + 2] + wave + displacement;
+                    posAttr.array[idx * 3 + 2] = newZ;
+                }
+            }
+            posAttr.needsUpdate = true;
 
             renderer.render(scene, camera);
         }
@@ -452,17 +871,107 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // 鼠标交互
+        // 鼠标移动
         document.addEventListener('mousemove', (e) => {
-            const x = (e.clientX / window.innerWidth - 0.5) * 2;
-            const y = (e.clientY / window.innerHeight - 0.5) * 2;
-            
-            torusKnot.position.x = 6 + x * 0.5;
-            torusKnot.position.y = 2 - y * 0.5;
-            
-            icosahedron.position.x = -6 + x * 0.3;
-            icosahedron.position.y = -1 - y * 0.3;
+            mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.targetY = (e.clientY / window.innerHeight) * 2 - 1;
         });
+
+        // 触摸支持
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                mouse.targetX = (e.touches[0].clientX / window.innerWidth) * 2 - 1;
+                mouse.targetY = (e.touches[0].clientY / window.innerHeight) * 2 - 1;
+            }
+        });
+    </script>
+
+    <!-- 服务器状态检测与控制 -->
+    <script>
+        const statusDot = document.getElementById('statusDot');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusDesc = document.getElementById('statusDesc');
+
+        // 检测服务器状态
+        async function checkServerStatus() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
+                const response = await fetch('http://localhost:5000/health', { 
+                    method: 'GET',
+                    signal: controller.signal,
+                    mode: 'cors'
+                }).catch(() => fetch('http://localhost:5000/', { 
+                    method: 'HEAD', 
+                    signal: controller.signal,
+                    mode: 'cors'
+                }));
+                
+                clearTimeout(timeoutId);
+                
+                if (response && (response.ok || response.status === 404 || response.status === 200)) {
+                    setServerOnline();
+                } else {
+                    setServerOffline();
+                }
+            } catch (error) {
+                setServerOffline();
+            }
+        }
+
+        function setServerOnline() {
+            statusDot.className = 'status-dot online';
+            statusTitle.textContent = '服务器运行中';
+            statusDesc.textContent = 'http://localhost:5000 · 所有功能可用';
+        }
+
+        function setServerOffline() {
+            statusDot.className = 'status-dot offline';
+            statusTitle.textContent = '服务器未启动';
+            statusDesc.textContent = '点击"一键启动"或查看启动指南';
+        }
+
+        // 初始检测 + 定时检测
+        checkServerStatus();
+        setInterval(checkServerStatus, 5000);
+
+        // 打开启动脚本
+        function openStartScript() {
+            // 提示用户手动运行
+            alert('请双击项目根目录下的 start_server.bat 文件启动服务器\n\n或在命令行中运行:\ncd ' + window.location.pathname.replace(/\/[^\/]*$/, '').replace(/^\//, '') + '\npython app.py');
+        }
+
+        // 弹窗控制
+        function openGuideModal() {
+            document.getElementById('guideModal').classList.add('show');
+        }
+
+        function closeGuideModal() {
+            document.getElementById('guideModal').classList.remove('show');
+        }
+
+        // 点击遮罩关闭
+        document.getElementById('guideModal').addEventListener('click', function(e) {
+            if (e.target === this) closeGuideModal();
+        });
+
+        // ESC 关闭
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeGuideModal();
+        });
+
+        // 复制代码
+        function copyCode(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                btn.textContent = '已复制';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '复制';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
     </script>
 </body>
 </html>
