@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF水印去除工具</title>
+    <style>
+        #upload-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        #message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        #download-link {
+            display: none;
+        }
+        
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .status-text {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .error-text {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .success-text {
+            color: #388e3c;
+            background-color: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .processing-info {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="upload-section">
+        <input type="file" id="file-input" accept=".pdf">
+        <button id="upload-btn">上传PDF文件</button>
+        <button id="remove-watermark-btn" disabled>去除水印并生成无水印PDF</button>
+    </div>
+    
+    <div id="progress-container" class="progress-container">
+        <div id="progress-text" class="progress-text">准备开始处理...</div>
+        <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+        </div>
+        <div id="status-text" class="status-text">等待开始...</div>
+        <div id="processing-info" class="processing-info"></div>
+    </div>
+    
+    <p id="message"></p>
+    <a id="download-link" href="#" download>下载处理后的PDF</a>
+
+    <script>
+        let progressInterval = null;
+        
+        document.getElementById('file-input').addEventListener('change', () => {
+            const fileInput = document.getElementById('file-input');
+            if (fileInput.files.length === 0) {
+                document.getElementById('upload-btn').innerText = '选择PDF文件';
+                document.getElementById('remove-watermark-btn').disabled = true;
+            } else {
+                document.getElementById('upload-btn').innerText = '开始上传';
+                document.getElementById('remove-watermark-btn').disabled = false;
+            }
+        });
+
+        document.getElementById('upload-btn').addEventListener('click', async () => {
+            if (!document.getElementById('file-input').files.length) return;
+
+            const formData = new FormData();
+            formData.append('file', document.getElementById('file-input').files[0]);
+
+            try {
+                document.getElementById('upload-btn').disabled = true;
+                document.getElementById('upload-btn').innerText = '上传中...';
+                
+                const response = await fetch('/upload', { 
+                    method: 'POST', 
+                    body: formData 
+                });
+                
+                if (response.ok) {
+                    document.getElementById('message').innerHTML = '<div class="success-text">文件上传成功！</div>';
+                    document.getElementById('remove-watermark-btn').innerText = '去除水印并生成无水印PDF';
+                } else {
+                    throw new Error('上传失败');
+                }
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                document.getElementById('message').innerHTML = '<div class="error-text">文件上传失败: ' + error.message + '</div>';
+            } finally {
+                document.getElementById('upload-btn').disabled = false;
+                document.getElementById('upload-btn').innerText = '选择PDF文件';
+            }
+        });
+
+        document.getElementById('remove-watermark-btn').addEventListener('click', async () => {
+            try {
+                // 禁用按钮
+                document.getElementById('remove-watermark-btn').disabled = true;
+                document.getElementById('remove-watermark-btn').innerText = '处理中...';
+                
+                // 显示进度容器
+                document.getElementById('progress-container').style.display = 'block';
+                document.getElementById('message').innerHTML = '';
+                document.getElementById('download-link').style.display = 'none';
+                
+                // 启动处理任务
+                const response = await fetch('/remove_watermark');
+                const result = await response.json();
+                
+                if (response.ok && result.status === 'started') {
+                    // 开始进度轮询
+                    startProgressPolling();
+                } else {
+                    throw new Error(result.message || '启动处理任务失败');
+                }
+            } catch (error) {
+                console.error('Error starting watermark removal:', error);
+                document.getElementById('message').innerHTML = '<div class="error-text">启动处理失败: ' + error.message + '</div>';
+                
+                // 重新启用按钮
+                document.getElementById('remove-watermark-btn').disabled = false;
+                document.getElementById('remove-watermark-btn').innerText = '去除水印并生成无水印PDF';
+                document.getElementById('progress-container').style.display = 'none';
+            }
+        });
+
+        function startProgressPolling() {
+            // 清除之前的轮询
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            
+            // 每500ms轮询一次进度
+            progressInterval = setInterval(checkProgress, 500);
+        }
+
+        async function checkProgress() {
+            try {
+                const response = await fetch('/progress');
+                const progress = await response.json();
+                
+                updateProgressDisplay(progress);
+                
+                // 如果处理完成或出错，停止轮询
+                if (progress.status === 'completed' || progress.status === 'error') {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                    
+                    if (progress.status === 'completed') {
+                        document.getElementById('message').innerHTML = '<div class="success-text">水印去除完成！</div>';
+                        document.getElementById('download-link').href = '/download';
+                        document.getElementById('download-link').style.display = 'block';
+                    } else if (progress.status === 'error') {
+                        document.getElementById('message').innerHTML = '<div class="error-text">处理出错: ' + progress.error_message + '</div>';
+                    }
+                    
+                    // 重新启用按钮
+                    document.getElementById('remove-watermark-btn').disabled = false;
+                    document.getElementById('remove-watermark-btn').innerText = '去除水印并生成无水印PDF';
+                }
+            } catch (error) {
+                console.error('Error checking progress:', error);
+            }
+        }
+
+        function updateProgressDisplay(progress) {
+            // 更新进度条
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const statusText = document.getElementById('status-text');
+            const processingInfo = document.getElementById('processing-info');
+            
+            progressFill.style.width = progress.progress + '%';
+            progressText.textContent = Math.round(progress.progress) + '%';
+            
+            // 根据状态更新显示
+            switch (progress.status) {
+                case 'processing':
+                    statusText.textContent = '正在处理中...';
+                    if (progress.stage) {
+                        statusText.textContent += ' ' + progress.stage;
+                    }
+                    if (progress.current_page && progress.total_pages) {
+                        processingInfo.textContent = `正在处理第 ${progress.current_page} 页，共 ${progress.total_pages} 页`;
+                    }
+                    break;
+                    
+                case 'completed':
+                    statusText.textContent = '处理完成！';
+                    progressFill.style.background = 'linear-gradient(90deg, #4CAF50, #45a049)';
+                    break;
+                    
+                case 'error':
+                    statusText.textContent = '处理出错';
+                    progressFill.style.background = 'linear-gradient(90deg, #f44336, #d32f2f)';
+                    break;
+                    
+                default:
+                    statusText.textContent = '等待开始...';
+            }
+        }
+    </script>
+</body>
+</html>
