@@ -71,6 +71,16 @@ async function startBackend() {
   const command = hasBundledBackend ? bundledBackend : pythonCmd;
   const args = hasBundledBackend ? [] : [scriptPath];
 
+  const logDir = app.getPath('userData');
+  const logPath = path.join(logDir, 'backend.log');
+  try {
+    fs.mkdirSync(logDir, { recursive: true });
+  } catch (_) {}
+  const logStream = fs.createWriteStream(logPath, { flags: 'a' });
+  logStream.write(`\n\n=== backend start ${new Date().toISOString()} ===\n`);
+  logStream.write(`command: ${command} ${args.join(' ')}\n`);
+  logStream.write(`origin: ${origin}\n`);
+
   backendProcess = spawn(command, args, {
     env: {
       ...process.env,
@@ -87,10 +97,22 @@ async function startBackend() {
     if (code !== 0) {
       console.error(`[backend] exited: code=${code} signal=${signal}`);
     }
+    try {
+      logStream.write(`\n=== backend exit code=${code} signal=${signal} ===\n`);
+      logStream.end();
+    } catch (_) {}
   });
 
-  backendProcess.stdout.on('data', (d) => console.log(`[backend] ${String(d).trimEnd()}`));
-  backendProcess.stderr.on('data', (d) => console.error(`[backend] ${String(d).trimEnd()}`));
+  backendProcess.stdout.on('data', (d) => {
+    const s = String(d);
+    console.log(`[backend] ${s.trimEnd()}`);
+    try { logStream.write(s); } catch (_) {}
+  });
+  backendProcess.stderr.on('data', (d) => {
+    const s = String(d);
+    console.error(`[backend] ${s.trimEnd()}`);
+    try { logStream.write(s); } catch (_) {}
+  });
 
   try {
     await waitForHealth(origin);
@@ -103,7 +125,7 @@ async function startBackend() {
       (hasBundledBackend
         ? `请检查可执行文件是否存在/未被系统拦截（macOS Gatekeeper、Windows Defender 等）。`
         : `请确认已安装 Python 以及依赖（opencv-python、PyMuPDF/fitz、fpdf、flask 等），并且命令行可以运行：${pythonCmd} -V`);
-    dialog.showErrorBox('Backend start failed', `${message}\n\n${err.message}`);
+    dialog.showErrorBox('Backend start failed', `${message}\n\n${err.message}\n\n日志：${logPath}`);
     throw err;
   }
 

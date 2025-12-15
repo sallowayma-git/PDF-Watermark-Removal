@@ -3,8 +3,6 @@
 #   pyinstaller --clean --noconfirm backend/backend.spec
 
 from pathlib import Path
-
-from PyInstaller.building.datastruct import Tree
 from PyInstaller.utils.hooks import collect_all
 from PyInstaller.utils.hooks import collect_submodules
 
@@ -23,7 +21,15 @@ def _toc_to_pairs(toc_items):
             pairs.append(item)
     return pairs
 
-datas += _toc_to_pairs(list(Tree(str(repo_root / "templates"), prefix="templates")))
+templates_dir = repo_root / "templates"
+if templates_dir.is_dir():
+    for p in templates_dir.rglob("*"):
+        if p.is_file():
+            rel = p.relative_to(templates_dir)
+            dest_dir = str((Path("templates") / rel.parent).as_posix())
+            if dest_dir == "templates/.":
+                dest_dir = "templates"
+            datas.append((str(p), dest_dir))
 
 hiddenimports = []
 hiddenimports += collect_submodules("fitz")

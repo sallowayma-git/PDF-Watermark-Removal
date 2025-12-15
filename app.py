@@ -20,10 +20,23 @@ from werkzeug.utils import secure_filename
 CONVERT_DPI = 400
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MEIPASS_DIR = getattr(sys, "_MEIPASS", None)
-APP_RESOURCES_DIR = MEIPASS_DIR if MEIPASS_DIR else BASE_DIR
-TEMPLATES_DIR = os.path.join(APP_RESOURCES_DIR, "templates")
 
+def _get_templates_dir() -> str:
+    candidates = []
+    if getattr(sys, "frozen", False):
+        candidates.append(os.path.join(os.path.dirname(sys.executable), "templates"))
+        meipass_dir = getattr(sys, "_MEIPASS", None)
+        if meipass_dir:
+            candidates.append(os.path.join(meipass_dir, "templates"))
+    candidates.append(os.path.join(BASE_DIR, "templates"))
+
+    for candidate in candidates:
+        if candidate and os.path.isdir(candidate):
+            return candidate
+    return os.path.join(BASE_DIR, "templates")
+
+
+TEMPLATES_DIR = _get_templates_dir()
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 
 DATA_DIR = os.getenv("DATA_DIR", BASE_DIR)
