@@ -40,7 +40,7 @@ jobs:
         run: npm run backend:build
 
       - name: Build Electron (macOS)
-        run: npm run dist
+        run: npm run dist -- --publish never
 
       - name: Upload artifacts (workflow)
         uses: actions/upload-artifact@v4
@@ -59,4 +59,3 @@ jobs:
             dist/*.dmg
             dist/latest-mac.yml
             dist/*.blockmap
-

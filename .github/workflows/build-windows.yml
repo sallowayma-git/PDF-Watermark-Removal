@@ -40,7 +40,7 @@ jobs:
         run: npm run backend:build
 
       - name: Build Electron (Windows)
-        run: npm run dist
+        run: npm run dist -- --publish never
 
       - name: Upload artifacts (workflow)
         uses: actions/upload-artifact@v4
