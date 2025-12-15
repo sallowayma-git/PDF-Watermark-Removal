@@ -51,7 +51,11 @@ pip install flask
   - `npm run dist`（生成 `dist/*.exe` 安装包）
 
 - 用 GitHub Actions 自动构建：
-  - 推送 tag（例如 `v0.1.0`）后，会触发 `.github/workflows/build-windows.yml`，产物在 Actions Artifacts 与 Release 附件里。
+  - 推送新 tag（例如 `v0.1.1`）后，会触发 `.github/workflows/build-windows.yml`，产物在 Actions Artifacts 与 Release 附件里。
+
+### macOS 自动构建
+
+- 推送新 tag（例如 `v0.1.1`）后，会触发 `.github/workflows/build-macos.yml`，产物在 Actions Artifacts 与 Release 附件里。
 
 ## **原理：**
 

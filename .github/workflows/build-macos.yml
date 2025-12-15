@@ -1,0 +1,62 @@
+name: build-macos
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: "pip"
+          cache-dependency-path: "requirements-backend.txt"
+
+      - name: Install Python deps (backend)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-backend.txt
+
+      - name: Install Node deps
+        run: npm ci
+
+      - name: Build bundled backend (PyInstaller)
+        run: npm run backend:build
+
+      - name: Build Electron (macOS)
+        run: npm run dist
+
+      - name: Upload artifacts (workflow)
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dist
+          path: |
+            dist/*.dmg
+            dist/latest-mac.yml
+            dist/*.blockmap
+
+      - name: Publish to GitHub Release (tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
+            dist/latest-mac.yml
+            dist/*.blockmap
+
