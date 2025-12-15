@@ -1,0 +1,11 @@
+flask
+werkzeug
+opencv-python
+numpy
+PyMuPDF
+PyPDF2
+fpdf
+pillow
+reportlab
+pyinstaller
+

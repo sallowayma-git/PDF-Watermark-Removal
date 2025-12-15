@@ -36,9 +36,22 @@ pip install flask
 
 说明：
 - 默认会尝试启动内置后端可执行文件目录 `backend/pdfwm_backend`（运行时不依赖用户机器 Python）。
-- 构建该可执行文件：`npm run backend:build`（需要先 `pip install pyinstaller`），产物会生成在 `backend/pdfwm_backend/`。
+- 构建该可执行文件：`npm run backend:build`（需要先 `pip install -r requirements-backend.txt`），产物会生成在 `backend/pdfwm_backend/`。
 - 如果未构建可执行文件，开发模式会回退到用系统 Python 启动 `app.py`（可用环境变量 `PYTHON_BIN` 指定 Python 可执行文件路径）。
 - 打包后上传/输出文件会写到系统用户目录下的 Electron `userData/backend-data`（不会写进应用安装目录）。
+
+### Windows 打包
+
+由于 PyInstaller/Electron 需要目标系统环境，Windows 版本建议用以下两种方式之一：
+
+- 在 Windows 机器上本地构建：
+  - `pip install -r requirements-backend.txt`
+  - `npm install`
+  - `npm run backend:build`
+  - `npm run dist`（生成 `dist/*.exe` 安装包）
+
+- 用 GitHub Actions 自动构建：
+  - 推送 tag（例如 `v0.1.0`）后，会触发 `.github/workflows/build-windows.yml`，产物在 Actions Artifacts 与 Release 附件里。
 
 ## **原理：**
 

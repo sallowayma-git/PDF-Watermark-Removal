@@ -5,7 +5,7 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "electron .",
-    "backend:build": "python3 backend/build_backend.py",
+    "backend:build": "node backend/build_backend.mjs",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
