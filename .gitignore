@@ -11,5 +11,4 @@ dist/
 .cache/
 build/
 dist/
-backend/pdfwm_backend
-backend/pdfwm_backend.exe
+backend/pdfwm_backend/

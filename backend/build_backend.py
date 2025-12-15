@@ -26,21 +26,18 @@ def main() -> int:
     print("Running:", " ".join(cmd))
     subprocess.check_call(cmd)
 
-    exe_name = "pdfwm_backend.exe" if sys.platform.startswith("win") else "pdfwm_backend"
-    built_path = dist_dir / exe_name
-    if not built_path.exists():
-        print(f"未找到构建产物：{built_path}")
+    built_dir = dist_dir / "pdfwm_backend"
+    if not built_dir.exists():
+        print(f"未找到构建产物目录：{built_dir}")
         return 3
 
-    out_path = repo_root / "backend" / exe_name
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    if out_path.exists():
-        out_path.unlink()
-    shutil.move(str(built_path), str(out_path))
-    print("Built backend:", out_path)
+    out_dir = repo_root / "backend" / "pdfwm_backend"
+    if out_dir.exists():
+        shutil.rmtree(out_dir, ignore_errors=True)
+    shutil.move(str(built_dir), str(out_dir))
+    print("Built backend:", out_dir)
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -2,6 +2,7 @@ const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const net = require('net');
 const { spawn } = require('child_process');
+const fs = require('fs');
 
 let backendProcess = null;
 
@@ -9,11 +10,19 @@ function getBackendExecutableName() {
   return process.platform === 'win32' ? 'pdfwm_backend.exe' : 'pdfwm_backend';
 }
 
-function getBundledBackendPath() {
+function getBundledBackendCommandPath() {
   const exeName = getBackendExecutableName();
   if (app.isPackaged) {
+    const base = path.join(process.resourcesPath, 'backend', 'pdfwm_backend');
+    if (fs.existsSync(base) && fs.statSync(base).isFile()) return base;
+    const nested = path.join(base, exeName);
+    if (fs.existsSync(nested)) return nested;
     return path.join(process.resourcesPath, 'backend', exeName);
   }
+  const base = path.join(app.getAppPath(), 'backend', 'pdfwm_backend');
+  if (fs.existsSync(base) && fs.statSync(base).isFile()) return base;
+  const nested = path.join(base, exeName);
+  if (fs.existsSync(nested)) return nested;
   return path.join(app.getAppPath(), 'backend', exeName);
 }
 
@@ -52,7 +61,7 @@ async function startBackend() {
   const port = await getFreePort();
   const origin = `http://127.0.0.1:${port}`;
 
-  const bundledBackend = getBundledBackendPath();
+  const bundledBackend = getBundledBackendCommandPath();
   const hasBundledBackend = require('fs').existsSync(bundledBackend);
 
   const pythonCmd =
