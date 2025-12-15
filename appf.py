@@ -1,5 +1,4 @@
-from flask import Flask, request, send_file
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, jsonify
 import os
 import shutil
 from io import BytesIO
@@ -9,6 +8,22 @@ from PyPDF2 import PdfReader
 from collections import OrderedDict
 
 app = Flask(__name__)
+
+@app.before_request
+def _handle_preflight():
+    if request.method == "OPTIONS":
+        return app.make_default_options_response()
+
+@app.after_request
+def _add_cors_headers(response):
+    response.headers.setdefault("Access-Control-Allow-Origin", "*")
+    response.headers.setdefault("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+    response.headers.setdefault("Access-Control-Allow-Headers", "Content-Type")
+    return response
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok"}), 200
 
 @app.route('/')
 def index():

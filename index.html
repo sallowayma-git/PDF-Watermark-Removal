@@ -892,17 +892,34 @@
         const statusTitle = document.getElementById('statusTitle');
         const statusDesc = document.getElementById('statusDesc');
 
+        function getBackendOrigin() {
+            const params = new URLSearchParams(window.location.search);
+            const backendParam = (params.get('backend') || '').trim();
+            if (backendParam) return backendParam.replace(/\/$/, '');
+
+            const defaultPort = '5001';
+            if (window.location.protocol === 'file:') {
+                return `http://localhost:${defaultPort}`;
+            }
+            if (window.location.port === defaultPort) {
+                return window.location.origin;
+            }
+            return `${window.location.protocol}//${window.location.hostname}:${defaultPort}`;
+        }
+
+        const backendOrigin = getBackendOrigin();
+
         // 检测服务器状态
         async function checkServerStatus() {
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 3000);
                 
-                const response = await fetch('http://localhost:5000/health', { 
+                const response = await fetch(`${backendOrigin}/health`, { 
                     method: 'GET',
                     signal: controller.signal,
                     mode: 'cors'
-                }).catch(() => fetch('http://localhost:5000/', { 
+                }).catch(() => fetch(`${backendOrigin}/`, { 
                     method: 'HEAD', 
                     signal: controller.signal,
                     mode: 'cors'
@@ -923,7 +940,7 @@
         function setServerOnline() {
             statusDot.className = 'status-dot online';
             statusTitle.textContent = '服务器运行中';
-            statusDesc.textContent = 'http://localhost:5000 · 所有功能可用';
+            statusDesc.textContent = `${backendOrigin} · 所有功能可用`;
         }
 
         function setServerOffline() {

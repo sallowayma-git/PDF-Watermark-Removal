@@ -243,16 +243,36 @@
         const statusText = document.getElementById('statusText');
         const statusBadge = document.getElementById('statusBadge');
         const offlineOverlay = document.getElementById('offlineOverlay');
+        const downloadLink = document.getElementById('downloadLink');
+
+        function getBackendOrigin() {
+            const params = new URLSearchParams(window.location.search);
+            const backendParam = (params.get('backend') || '').trim();
+            if (backendParam) return backendParam.replace(/\/$/, '');
+
+            const defaultPort = '5001';
+            if (window.location.protocol === 'file:') {
+                return `http://localhost:${defaultPort}`;
+            }
+            if (window.location.port === defaultPort) {
+                return window.location.origin;
+            }
+            return `${window.location.protocol}//${window.location.hostname}:${defaultPort}`;
+        }
+
+        const backendOrigin = getBackendOrigin();
+        downloadLink.href = `${backendOrigin}/download`;
 
         async function checkServerStatus() {
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 3000);
                 
-                const response = await fetch('/health', { 
+                const response = await fetch(`${backendOrigin}/health`, { 
                     method: 'GET',
-                    signal: controller.signal 
-                }).catch(() => fetch('/', { method: 'HEAD', signal: controller.signal }));
+                    signal: controller.signal,
+                    mode: 'cors'
+                }).catch(() => fetch(`${backendOrigin}/`, { method: 'HEAD', signal: controller.signal, mode: 'cors' }));
                 
                 clearTimeout(timeoutId);
                 
@@ -269,7 +289,7 @@
         function setServerOnline() {
             serverOnline = true;
             statusDot.className = 'status-dot online';
-            statusText.textContent = '服务器已连接';
+            statusText.textContent = `服务器已连接 · ${backendOrigin}`;
             statusBadge.className = 'status-badge online';
             statusBadge.textContent = '在线';
             offlineOverlay.classList.remove('show');
@@ -314,12 +334,12 @@
             var formData = new FormData();
             formData.append('file', file);
 
-            fetch('/upload', { method: 'POST', body: formData })
+            fetch(`${backendOrigin}/upload`, { method: 'POST', body: formData, mode: 'cors' })
                 .then(function(response) { return response.text(); })
                 .then(function(message) {
                     if (message === '文件上传成功') {
                         statusEl.textContent = "🔧 正在处理水印...";
-                        return fetch('/remove_watermark', { method: 'GET' });
+                        return fetch(`${backendOrigin}/remove_watermark`, { method: 'GET', mode: 'cors' });
                     } else {
                         throw new Error(message);
                     }
@@ -329,7 +349,7 @@
                     if (message === '水印去除成功') {
                         statusEl.textContent = "✅ 处理完成！";
                         var resultImage = document.getElementById('resultImage');
-                        resultImage.src = '/static/result_image.png?' + Date.now();
+                        resultImage.src = `${backendOrigin}/static/result_image.png?` + Date.now();
                         resultImage.style.display = 'block';
                         document.querySelector('#resultContainer .image-placeholder').style.display = 'none';
                         document.getElementById('downloadLink').style.display = 'block';

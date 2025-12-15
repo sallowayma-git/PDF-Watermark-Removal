@@ -13,10 +13,17 @@ import threading
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from datetime import datetime
+from werkzeug.utils import secure_filename
 
 CONVERT_DPI = 400
 
 app = Flask(__name__)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+OUTPUT_DIR = os.path.join(BASE_DIR, "output_images")
+OUTPUT_PDF_PATH = os.path.join(BASE_DIR, "output_file.pdf")
+UPLOADED_PDF_PATH = os.path.join(UPLOAD_DIR, "uploaded_file.pdf")
 
 # 全局进度状态管理
 class ProgressManager:
@@ -90,6 +97,18 @@ class ProgressManager:
 
 # 全局进度管理器实例
 progress_manager = ProgressManager()
+
+@app.before_request
+def _handle_preflight():
+    if request.method == "OPTIONS":
+        return app.make_default_options_response()
+
+@app.after_request
+def _add_cors_headers(response):
+    response.headers.setdefault("Access-Control-Allow-Origin", "*")
+    response.headers.setdefault("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+    response.headers.setdefault("Access-Control-Allow-Headers", "Content-Type")
+    return response
 
 # 图像去除水印函数
 def remove_watermark(image_path):
@@ -169,8 +188,8 @@ def images_to_pdf(image_paths, output_path):
 # 后台处理函数
 def process_watermark_removal():
     try:
-        pdf_path = 'uploads/uploaded_file.pdf'
-        output_folder = 'output_images'
+        pdf_path = UPLOADED_PDF_PATH
+        output_folder = OUTPUT_DIR
         
         if not os.path.exists(pdf_path):
             progress_manager.error_task("未找到上传的PDF文件")
@@ -189,8 +208,7 @@ def process_watermark_removal():
         image_paths = pdf_to_images(pdf_path, output_folder)
         
         # 生成新的PDF
-        output_pdf_path = 'output_file.pdf'
-        images_to_pdf(image_paths, output_pdf_path)
+        images_to_pdf(image_paths, OUTPUT_PDF_PATH)
         
         progress_manager.complete_task()
         
@@ -206,19 +224,34 @@ A4_SIZE_PX_72DPI = (595, 842)
 def index():
     return render_template('index.html')
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok"}), 200
+
 @app.route('/upload', methods=['POST'])
 def upload():
+    if 'file' not in request.files:
+        return jsonify({'error': 'missing form field: file'}), 400
+
     uploaded_file = request.files['file']
-    if uploaded_file.filename != '':
-        pdf_path = 'uploads/uploaded_file.pdf'
-        uploaded_file.save(pdf_path)
-        return render_template('index.html', message='文件上传成功')
-    return render_template('index.html', message='未选择文件')
+    filename = secure_filename(uploaded_file.filename or "")
+    if not filename:
+        return jsonify({'error': 'empty filename'}), 400
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    uploaded_file.save(UPLOADED_PDF_PATH)
+    return jsonify({'status': 'ok', 'filename': filename}), 200
 
 @app.route('/remove_watermark', methods=['GET'])
 def remove_watermark_route():
     """启动异步水印去除任务"""
     try:
+        if not os.path.exists(UPLOADED_PDF_PATH):
+            return jsonify({
+                'status': 'error',
+                'message': '未找到已上传的PDF文件，请先上传'
+            }), 400
+
         # 启动后台任务
         thread = threading.Thread(target=process_watermark_removal)
         thread.daemon = True
@@ -242,9 +275,8 @@ def get_progress():
 
 @app.route('/download')
 def download():
-    output_pdf_path = 'output_file.pdf'
-    if os.path.exists(output_pdf_path):
-        return send_file(output_pdf_path, as_attachment=True)
+    if os.path.exists(OUTPUT_PDF_PATH):
+        return send_file(OUTPUT_PDF_PATH, as_attachment=True)
     else:
         return jsonify({'error': '文件不存在'}), 404
 

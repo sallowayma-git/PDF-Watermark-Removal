@@ -214,16 +214,36 @@
         const statusText = document.getElementById('statusText');
         const statusBadge = document.getElementById('statusBadge');
         const offlineOverlay = document.getElementById('offlineOverlay');
+        const downloadLink = document.getElementById('downloadLink');
+
+        function getBackendOrigin() {
+            const params = new URLSearchParams(window.location.search);
+            const backendParam = (params.get('backend') || '').trim();
+            if (backendParam) return backendParam.replace(/\/$/, '');
+
+            const defaultPort = '5001';
+            if (window.location.protocol === 'file:') {
+                return `http://localhost:${defaultPort}`;
+            }
+            if (window.location.port === defaultPort) {
+                return window.location.origin;
+            }
+            return `${window.location.protocol}//${window.location.hostname}:${defaultPort}`;
+        }
+
+        const backendOrigin = getBackendOrigin();
+        downloadLink.href = `${backendOrigin}/download`;
 
         async function checkServerStatus() {
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 3000);
                 
-                const response = await fetch('/health', { 
+                const response = await fetch(`${backendOrigin}/health`, { 
                     method: 'GET',
-                    signal: controller.signal 
-                }).catch(() => fetch('/', { method: 'HEAD', signal: controller.signal }));
+                    signal: controller.signal,
+                    mode: 'cors'
+                }).catch(() => fetch(`${backendOrigin}/`, { method: 'HEAD', signal: controller.signal, mode: 'cors' }));
                 
                 clearTimeout(timeoutId);
                 
@@ -240,7 +260,7 @@
         function setServerOnline() {
             serverOnline = true;
             statusDot.className = 'status-dot online';
-            statusText.textContent = '服务器已连接';
+            statusText.textContent = `服务器已连接 · ${backendOrigin}`;
             statusBadge.className = 'status-badge online';
             statusBadge.textContent = '在线';
             offlineOverlay.classList.remove('show');
@@ -267,27 +287,75 @@
             }
         });
 
-        function removeWatermark() {
+        async function removeWatermark() {
             var msgEl = document.getElementById("message");
             msgEl.style.display = "block";
             msgEl.className = "message";
             msgEl.textContent = "处理中...";
+            downloadLink.style.display = "none";
 
-            fetch('/remove_watermark', { method: 'GET' })
-                .then(response => response.json())
-                .then(data => {
-                    msgEl.textContent = data.message;
-                    if (data.success) {
-                        msgEl.className = "message success";
-                        document.getElementById("downloadLink").style.display = "block";
-                    } else {
-                        msgEl.className = "message error";
-                    }
-                })
-                .catch(error => {
-                    msgEl.className = "message error";
-                    msgEl.textContent = "出现错误：" + error.message;
+            if (!serverOnline) {
+                msgEl.className = "message error";
+                msgEl.textContent = "服务器未连接，请先启动后端服务";
+                return;
+            }
+
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) {
+                msgEl.className = "message error";
+                msgEl.textContent = "请先选择 PDF 文件";
+                return;
+            }
+
+            try {
+                msgEl.textContent = "⏳ 上传中...";
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const uploadResp = await fetch(`${backendOrigin}/upload`, {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'cors'
                 });
+                if (!uploadResp.ok) {
+                    throw new Error(`上传失败 (${uploadResp.status})`);
+                }
+
+                msgEl.textContent = "🔧 正在启动处理...";
+                const startResp = await fetch(`${backendOrigin}/remove_watermark`, { method: 'GET', mode: 'cors' });
+                const startData = await startResp.json().catch(() => ({}));
+                if (!startResp.ok) {
+                    throw new Error(startData.message || `启动失败 (${startResp.status})`);
+                }
+
+                msgEl.textContent = startData.message || "已启动处理，正在查询进度...";
+                msgEl.className = "message success";
+
+                const poll = async () => {
+                    const resp = await fetch(`${backendOrigin}/progress`, { method: 'GET', mode: 'cors' });
+                    if (!resp.ok) throw new Error(`获取进度失败 (${resp.status})`);
+                    const data = await resp.json();
+                    if (data.status === 'completed') return { done: true, data };
+                    if (data.status === 'error') throw new Error(data.error_message || '处理失败');
+                    return { done: false, data };
+                };
+
+                while (true) {
+                    const { done, data } = await poll();
+                    if (done) break;
+                    msgEl.textContent = `${data.stage || '处理中'} · ${Math.round(data.progress || 0)}% (${data.current_page || 0}/${data.total_pages || 0})`;
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+
+                msgEl.textContent = "✅ 处理完成，可以下载了";
+                msgEl.className = "message success";
+                downloadLink.href = `${backendOrigin}/download?ts=${Date.now()}`;
+                downloadLink.style.display = "block";
+            } catch (error) {
+                msgEl.className = "message error";
+                msgEl.textContent = "出现错误：" + error.message;
+            }
         }
     </script>
 </body>

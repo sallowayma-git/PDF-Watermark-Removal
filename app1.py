@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, jsonify
 import os
 import cv2
 import numpy as np
@@ -12,6 +12,26 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 
 app = Flask(__name__)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+UPLOADED_PDF_PATH = os.path.join(UPLOAD_DIR, "uploaded_file.pdf")
+
+@app.before_request
+def _handle_preflight():
+    if request.method == "OPTIONS":
+        return app.make_default_options_response()
+
+@app.after_request
+def _add_cors_headers(response):
+    response.headers.setdefault("Access-Control-Allow-Origin", "*")
+    response.headers.setdefault("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+    response.headers.setdefault("Access-Control-Allow-Headers", "Content-Type")
+    return response
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok"}), 200
 
 
 # 图像去除水印函数
@@ -93,8 +113,8 @@ def index():
 def upload():
     uploaded_file = request.files['file']
     if uploaded_file.filename != '':
-        pdf_path = 'uploads/uploaded_file.pdf'
-        uploaded_file.save(pdf_path)
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        uploaded_file.save(UPLOADED_PDF_PATH)
         return render_template('index.html', message='文件上传成功')
 
 
