@@ -26,6 +26,7 @@ jobs:
         with:
           python-version: "3.9"
           cache: "pip"
+          cache-dependency-path: "requirements-backend.txt"
 
       - name: Install Python deps (backend)
         run: |
@@ -58,4 +59,3 @@ jobs:
             dist/*.exe
             dist/latest.yml
             dist/*.blockmap
-
