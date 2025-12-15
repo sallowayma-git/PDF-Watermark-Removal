@@ -19,6 +19,27 @@ pip install flask
 
 在网站中上传pdf文件，点击去除水印，下载去除后的pdf文件
 
+## Electron 桌面版（可选）
+
+此模式会用 Electron 启动本项目的 Flask 后端，并在桌面窗口中打开页面。
+
+前置条件：
+- Node.js（建议 18+）
+- Python3（仅用于“构建后端可执行文件”），以及本项目 Python 依赖（opencv-python、PyMuPDF/fitz、fpdf、flask 等）
+
+开发运行：
+- `npm install`
+- `npm run dev`
+
+打包（electron-builder）：
+- `npm run dist`
+
+说明：
+- 默认会尝试启动内置后端可执行文件 `backend/pdfwm_backend`（运行时不依赖用户机器 Python）。
+- 构建该可执行文件：`npm run backend:build`（需要先 `pip install pyinstaller`）。
+- 如果未构建可执行文件，开发模式会回退到用系统 Python 启动 `app.py`（可用环境变量 `PYTHON_BIN` 指定 Python 可执行文件路径）。
+- 打包后上传/输出文件会写到系统用户目录下的 Electron `userData/backend-data`（不会写进应用安装目录）。
+
 ## **原理：**
 
 将pdf转为多张图片，用cv方法去除每张图片水印，再转回pdf
@@ -41,4 +62,3 @@ pdf转换的图片默认设置300DPI，基本满足需求，可能有部分pdf�
 ### 图像去除水印网页↓↓↓
 
 ![PS_%ROHKWH$CSV4X1_Z6QRY](https://github.com/StuHude/PDF-Watermark-Removal/assets/89311278/3db93765-0b97-4cfc-a9d4-3fceb2ba68e7)
-

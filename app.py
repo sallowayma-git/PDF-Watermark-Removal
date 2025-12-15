@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, send_file, jsonify
 import os
+import sys
+import multiprocessing
 import cv2
 import numpy as np
 import fitz
@@ -17,12 +19,17 @@ from werkzeug.utils import secure_filename
 
 CONVERT_DPI = 400
 
-app = Flask(__name__)
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-OUTPUT_DIR = os.path.join(BASE_DIR, "output_images")
-OUTPUT_PDF_PATH = os.path.join(BASE_DIR, "output_file.pdf")
+MEIPASS_DIR = getattr(sys, "_MEIPASS", None)
+APP_RESOURCES_DIR = MEIPASS_DIR if MEIPASS_DIR else BASE_DIR
+TEMPLATES_DIR = os.path.join(APP_RESOURCES_DIR, "templates")
+
+app = Flask(__name__, template_folder=TEMPLATES_DIR)
+
+DATA_DIR = os.getenv("DATA_DIR", BASE_DIR)
+UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
+OUTPUT_DIR = os.path.join(DATA_DIR, "output_images")
+OUTPUT_PDF_PATH = os.path.join(DATA_DIR, "output_file.pdf")
 UPLOADED_PDF_PATH = os.path.join(UPLOAD_DIR, "uploaded_file.pdf")
 
 # 全局进度状态管理
@@ -281,4 +288,11 @@ def download():
         return jsonify({'error': '文件不存在'}), 404
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    multiprocessing.freeze_support()
+    host = os.getenv('HOST', '0.0.0.0')
+    try:
+        port = int(os.getenv('PORT', '5001'))
+    except ValueError:
+        port = 5001
+    debug = os.getenv('FLASK_DEBUG', '1') not in ('0', 'false', 'False', 'no', 'NO')
+    app.run(debug=debug, host=host, port=port)

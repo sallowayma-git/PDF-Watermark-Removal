@@ -6,3 +6,10 @@
 .idea/
 uploads/
 output_images/
+node_modules/
+dist/
+.cache/
+build/
+dist/
+backend/pdfwm_backend
+backend/pdfwm_backend.exe
